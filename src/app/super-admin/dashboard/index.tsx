@@ -96,7 +96,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Users"
           value={activeUsers.length}
@@ -128,7 +128,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* System Health Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           title="System Performance"
           value="98.5%"
@@ -153,7 +153,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Activity */}
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -254,7 +254,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Recent Projects & Users */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Projects */}
         <Card>
           <CardHeader>

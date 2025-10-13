@@ -6,13 +6,14 @@ import { DashboardHeader } from '@/layout/dashboard/header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { mockUsers } from '@/app/super-admin/mockdata';
 
-interface SuperAdminLayoutProps {
+interface AccountantLayoutProps {
   children: ReactNode;
 }
 
-export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
+export default function AccountantLayout({ children }: AccountantLayoutProps) {
   // Mock user data - in a real app, this would come from authentication
-  const mockUser = mockUsers[0]; // Using the first user as an example
+  // Find an accountant user from mock data
+  const mockUser = mockUsers.find(user => user.role === 'accountant') || mockUsers[0];
 
   const handleLogout = () => {
     // In a real app, this would handle logout logic
@@ -43,3 +44,5 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     </SidebarProvider>
   );
 }
+
+
