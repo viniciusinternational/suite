@@ -1,49 +1,40 @@
 import type { NavigationItem, UserRole } from '@/types';
 
 export const navigationConfig: NavigationItem[] = [
-  // General Dashboard Navigation
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/dashboard',
-    roles: ['super_admin', 'managing_director', 'department_head', 'hr_manager', 'accountant', 'administrator', 'employee'],
-  },
-
   // Super Admin Navigation
   {
     id: 'super-admin-dashboard',
-    label: 'Super Admin Dashboard',
+    label: 'Dashboard',
     icon: 'LayoutDashboard',
-    href: '/super-admin/dashboard',
+    href: '/admin/dashboard',
     roles: ['super_admin'],
   },
   {
     id: 'super-admin-departments',
     label: 'Departments',
     icon: 'Building2',
-    href: '/super-admin/departments',
+    href: '/admin/departments',
     roles: ['super_admin'],
   },
   {
     id: 'super-admin-projects',
-    label: 'All Projects',
+    label: 'Projects',
     icon: 'FolderOpen',
-    href: '/super-admin/all-projects',
+    href: '/admin/projects',
     roles: ['super_admin'],
   },
   {
     id: 'super-admin-employees',
-    label: 'All Employees',
+    label: 'Users',
     icon: 'UserCheck',
-    href: '/super-admin/all-employees',
+    href: '/admin/users',
     roles: ['super_admin'],
   },
   {
     id: 'super-admin-settings',
     label: 'System Settings',
     icon: 'Settings',
-    href: '/super-admin/system-settings',
+    href: '/admin/system-settings',
     roles: ['super_admin'],
   },
   // {
@@ -64,7 +55,7 @@ export const navigationConfig: NavigationItem[] = [
     id: 'super-admin-audit',
     label: 'Audit Logs',
     icon: 'FileText',
-    href: '/super-admin/audit-logs',
+    href: '/admin/audit-logs',
     roles: ['super_admin'],
   },
 
@@ -154,7 +145,7 @@ export const navigationConfig: NavigationItem[] = [
   },
   {
     id: 'hr-employees',
-    label: 'Employee Directory',
+    label: 'User Directory',
     icon: 'Users',
     href: '/hr-manager/employee-directory',
     roles: ['hr_manager'],

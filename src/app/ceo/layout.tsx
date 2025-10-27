@@ -10,13 +10,13 @@ import { useAuthStore } from '@/store';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
-interface HRManagerLayoutProps {
+interface ManagingDirectorLayoutProps {
   children: ReactNode;
 }
 
-export default function HRManagerLayout({ children }: HRManagerLayoutProps) {
+export default function ManagingDirectorLayout({ children }: ManagingDirectorLayoutProps) {
   const router = useRouter();
-  const { isChecking, user } = useAuthGuard(['hr_manager']);
+  const { isChecking, user } = useAuthGuard(['managing_director']);
   const { logout } = useAuthStore();
 
   const handleLogout = () => {

@@ -1,6 +1,32 @@
 // User Types and Roles
 export type UserRole = 'super_admin'| 'managing_director' | 'department_head' |  'hr_manager'| 'administrator'| 'accountant' | 'employee';
 export type Sector = 'construction' | 'engineering' | 'legal' | 'administration' | 'consulting' | 'other';
+export type Permission = 'create' | 'read' | 'update' | 'delete';
+
+// Auth Types
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  notificationId: string | null;
+  token: string | null;
+  refreshToken: string | null;
+  currentAccount: CurrentAccount | null;
+}
+
+export interface CurrentAccount {
+  _id?: string;
+  email?: string;
+  name?: string;
+}
+
+export interface Permissions {
+  id: string;
+  key: string;
+  value: boolean;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface User {
   id: string;
@@ -11,35 +37,30 @@ export interface User {
   dob: string;
   gender: string;
   email: string;
-  mailAddresses: string[];
   role: UserRole;
-  emailVerified?: boolean;
   departmentId?: string;
   employeeId?: string;
+  position: string;
+  hireDate: string;
+  salary: number;
   avatar?: string;
   isActive: boolean;
+  permissions?: Record<string, boolean>;
   createdAt: string;
   updatedAt: string;
 }
 
-// Shape returned by backend user endpoints
-export interface BackendUser {
-  _id: string;
+export interface ZitadelUser {
+  id: string;
+  email: string;
   firstName: string;
   lastName: string;
-  otherNames?: string;
-  email: string;
-  mailAddresses: string[];
-  phone?: string;
-  gender?: string;
-  dob?: string | null;
-  avatar?: string;
-  isActive: boolean;
-  status?: 'active' | 'inactive' | 'suspended' | string;
-  role?: UserRole;
-  createdAt?: string;
-  updatedAt?: string;
+  displayName: string;
+  preferredUsername?: string;
+  state?: string;
 }
+
+
 
 export interface Department {
   id: string;
@@ -58,24 +79,6 @@ export interface DepartmentUnit {
   departmentId: string;
   managerId?: string;
   isActive: boolean;
-}
-
-export interface Employee {
-  id: string;
-  userId: string;
-  employeeNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  departmentId: string;
-  unitId?: string;
-  position: string;
-  hireDate: string;
-  salary: number;
-  status: 'active' | 'inactive' | 'terminated';
-  managerId?: string;
-  avatar?: string;
 }
 
 export interface Project {
@@ -167,14 +170,7 @@ export interface Client {
   address: string;
 }
 
-export interface Revenue {
-  id: string;
-  projectId?: string;
-  clientId?: string;
-  amount: number;
-  date: string;
-  description?: string;
-}
+
 
 export interface Item {
   id: string;
@@ -186,13 +182,7 @@ export interface Item {
   totalPrice: number;
   specifications?: string;
 }
-// quantity survey
-export interface QuantitySurvey {
-  id: string;
-  projectId: string;
-  items: Item[];
-  totalAmount: number;
-}
+
 
 export interface Vendor {
   id: string;
@@ -242,59 +232,6 @@ export interface Payment {
 
 }
 
-export interface Voucher {
-  id: string;
-  voucherNumber: string;
-  voucherDate: string;
-  voucherType: 'purchase' | 'sale' | 'payment' | 'receipt';
-  totalAmount: number;
-}
-
-// internal memo
-export interface InternalMemo {
-  id: string;
-  message: string;
-  author: string;
-  users: User[];
-  departments: Department[];
-  attachments: string[];
-}
-
-// Navigation and Route Types
-export interface NavigationItem {
-  id: string;
-  label: string;
-  icon: string;
-  href?: string;
-  badge?: string | number;
-  children?: NavigationItem[];
-  roles: UserRole[];
-}
-
-export interface RouteConfig {
-  path: string;
-  element: React.ComponentType;
-  roles: UserRole[];
-  title: string;
-}
-
-// Dashboard Data Types
-export interface DashboardStats {
-  totalProjects?: number;
-  activeProjects?: number;
-  totalEmployees?: number;
-  pendingApprovals?: number;
-  totalRevenue?: number;
-  monthlyExpenses?: number;
-  completedTasks?: number;
-  overdueTasks?: number;
-}
-
-export interface ChartData {
-  name: string;
-  value: number;
-  color?: string;
-}
 
 // API Response Types
 export interface ApiResponse<T> {
@@ -304,144 +241,4 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
-// Auth Types
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean | null;
-  permissions: string[];
-}
-
-// Form Types
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface CreateUserForm {
-  name: string;
-  email: string;
-  role: UserRole;
-  departmentId?: string;
-  password: string;
-}
-
-export interface CreateProjectForm {
-  name: string;
-  code: string;
-  description?: string;
-  departmentId: string;
-  managerId: string;
-  startDate: string;
-  endDate: string;
-  budget: number;
-  clientName?: string;
-}
-
-// Filter and Search Types
-export interface ProjectFilters {
-  status?: string[];
-  departmentId?: string;
-  managerId?: string;
-  priority?: string[];
-  dateRange?: {
-    start: string;
-    end: string;
-  };
-}
-
-export interface EmployeeFilters {
-  departmentId?: string;
-  status?: string[];
-  position?: string;
-}
-
-// Notification Types
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  isRead: boolean;
-  createdAt: string;
-  actionUrl?: string;
-}
-
-// Approval Workflow Types
-export interface ApprovalAction {
-  id: string;
-  requestId: string;
-  requestType: 'leave_request' | 'procurement_request' | 'request_form' | 'payment';
-  approverId: string;
-  action: 'approve' | 'reject' | 'pending';
-  comments?: string;
-  actionDate: string;
-  level: 'department_head' | 'administrator' | 'managing_director';
-}
-
-export interface ApprovalSummary {
-  pendingLeaveRequests: number;
-  pendingProcurementRequests: number;
-  pendingRequestForms: number;
-  pendingPayments: number;
-  totalPending: number;
-}
-
-export interface RevenueStats {
-  totalRevenue: number;
-  yearToDateGrowth: number;
-  revenueByProject: {
-    name: string;
-    value: number;
-  }[];
-  revenueByClient: {
-    name: string;
-    value: number;
-  }[];
-  revenueTrends: {
-    month: string;
-    revenue: number;
-    expenses: number;
-    profit: number;
-  }[];
-}
-
-export interface IncomeExpenseComparison {
-  month: string;
-  income: number;
-  expenses: number;
-}
-
-// Update ApprovalStats interface
-export interface ApprovalStats {
-  pendingPayments: number;
-  pendingRequests: number;
-  pendingProcurements: number;
-  pendingLeaves: number;
-  pendingProjects: number;
-}
-
-export interface DepartmentFormData {
-  name: string;
-  code: string;
-  sector: Sector;
-  description: string;
-  headId: string;
-  isActive: boolean;
-}
-
-export interface UnitFormData {
-  name: string;
-  departmentId: string;
-  managerId: string;
-  isActive: boolean;
-}

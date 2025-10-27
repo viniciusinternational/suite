@@ -34,7 +34,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { User as UserType } from '@/types';
-import { EmailPortalTrigger } from '@/components/globals/email-portal';
 
 interface DashboardHeaderProps {
   user: UserType | null;
@@ -151,13 +150,6 @@ export const DashboardHeader = ({ user, onLogout }: DashboardHeaderProps) => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-2">
-            {/* Mail Drawer */}
-            <EmailPortalTrigger variant="outline" size="sm">
-              Email Center
-              {/* <MailDrawer unreadCount={0} /> */}
-            </EmailPortalTrigger>
-            
-
             {/* Quick Actions */}
             <Button
               variant="ghost"

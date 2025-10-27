@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  headId      String?
+  sector      String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  units       DepartmentUnit[]
+  head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
+
+  @@map("departments")
+}
+
+model DepartmentUnit {
+  id           String   @id @default(cuid())
+  name         String
+  departmentId String
+  managerId    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  manager      User?      @relation("UnitManager", fields: [managerId], references: [id])
+
+  @@map("department_units")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  fullName     String
+  phone        String
+  dob          String
+  gender       String
+  email        String   @unique
+  role         String
+  departmentId String?
+  employeeId   String?
+  position     String
+  hireDate     String
+  salary       Float
+  avatar       String?
+  isActive     Boolean  @default(true)
+  permissions  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  departmentHeadOf Department[]     @relation("DepartmentHead")
+  unitManagerOf    DepartmentUnit[] @relation("UnitManager")
+
+  @@map("users")
+}
