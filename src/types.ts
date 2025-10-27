@@ -1,5 +1,5 @@
 // User Types and Roles
-export type UserRole = 'super_admin'| 'managing_director' | 'department_head' |  'hr_manager'| 'administrator'| 'accountant' | 'employee';
+export type   UserRole = 'admin'| 'ceo'| 'director' | 'hr_manager'| 'administrator'| 'accountant' | 'employee';
 export type Sector = 'construction' | 'engineering' | 'legal' | 'administration' | 'consulting' | 'other';
 export type Permission = 'create' | 'read' | 'update' | 'delete';
 
@@ -81,12 +81,31 @@ export interface DepartmentUnit {
   isActive: boolean;
 }
 
+
+export interface Approval {
+  id: string;
+  projectId: string;
+  userId: string;
+  level: 'director' | 'ceo';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+  };
+}
+
+
 export interface Project {
   id: string;
   name: string;
   code: string;
   departmentId: string;
-  departmentName?: string; // Optional field for display purposes
   managerId: string;
   budget: number;
   spent: number;
@@ -97,12 +116,28 @@ export interface Project {
   progress: number;
   description?: string;
   clientName?: string;
-  milestones: Milestone[];
-  tasks: Task[];
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
-  approvalDate?: string;
-  approvedBy?: string;
-  approvalComments?: string;
+  milestones?: Milestone[];
+  tasks?: Task[];
+  approvals?: Approval[];
+  createdAt?: string;
+  updatedAt?: string;
+  department?: {
+    id: string;
+    name: string;
+    code: string;
+    sector?: string;
+  };
+  manager?: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    avatar?: string;
+  };
+  _count?: {
+    milestones: number;
+    tasks: number;
+  };
 }
 
 export interface Milestone {
@@ -115,8 +150,12 @@ export interface Milestone {
   progress: number;
   budget: number;
   spent: number;
-  attachments?: string[];
-  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  tasks?: Task[];
+  _count?: {
+    tasks: number;
+  };
 }
 
 export interface Task {
@@ -132,8 +171,19 @@ export interface Task {
   dueDate?: string;
   estimatedHours?: number;
   actualHours?: number;
-  attachments?: string[];
-  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  assignee?: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+    role: string;
+  };
+  milestone?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface LeaveRequest {
@@ -232,6 +282,78 @@ export interface Payment {
 
 }
 
+
+// Audit Log Types
+export type AuditActionType = 
+  // Generic CRUD operations
+  | 'CREATE'
+  | 'READ'
+  | 'UPDATE'
+  | 'DELETE'
+  // Specific business actions
+  | 'USER_LOGIN'
+  | 'USER_LOGOUT'
+  | 'PASSWORD_RESET'
+  | 'PERMISSION_CHANGED'
+  | 'PROJECT_APPROVED'
+  | 'PROJECT_REJECTED'
+  | 'PROJECT_PAUSED'
+  | 'PROJECT_RESUMED'
+  | 'BUDGET_UPDATED'
+  | 'MILESTONE_COMPLETED'
+  | 'TASK_ASSIGNED'
+  | 'TASK_COMPLETED'
+  | 'PAYMENT_PROCESSED'
+  | 'PAYMENT_APPROVED'
+  | 'PAYMENT_REJECTED'
+  | 'LEAVE_REQUESTED'
+  | 'LEAVE_APPROVED'
+  | 'LEAVE_REJECTED'
+  | 'DEPARTMENT_UPDATED'
+  | 'UNIT_CREATED'
+  | 'REPORT_GENERATED'
+  | 'SETTING_CHANGED';
+
+export type AuditEntityType = 
+  | 'User'
+  | 'Department'
+  | 'DepartmentUnit'
+  | 'Project'
+  | 'Milestone'
+  | 'Task'
+  | 'Approval'
+  | 'LeaveRequest'
+  | 'Payslip'
+  | 'Payment'
+  | 'RequestForm'
+  | 'Item'
+  | 'Vendor'
+  | 'Client'
+  | 'AuditLog'
+  | 'System';
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  userSnapshot: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    departmentId?: string;
+  };
+  actionType: AuditActionType;
+  entityType: AuditEntityType;
+  entityId?: string;
+  description: string;
+  isSuccessful: boolean;
+  previousData?: Record<string, any> | null;
+  newData?: Record<string, any> | null;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: Date | string;
+  createdAt: Date | string;
+}
 
 // API Response Types
 export interface ApiResponse<T> {

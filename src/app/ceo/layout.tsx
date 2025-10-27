@@ -16,12 +16,12 @@ interface ManagingDirectorLayoutProps {
 
 export default function ManagingDirectorLayout({ children }: ManagingDirectorLayoutProps) {
   const router = useRouter();
-  const { isChecking, user } = useAuthGuard(['managing_director']);
+  const { isChecking, user } = useAuthGuard(['ceo']);
   const { logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   if (isChecking || !user) {

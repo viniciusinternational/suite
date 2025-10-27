@@ -29,7 +29,7 @@ axiosClient.interceptors.response.use(
       if (typeof window !== 'undefined') {
         // Clear the auth storage
         window.localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
+        window.location.href = '/auth/login';
       }
     }
     return Promise.reject(error);

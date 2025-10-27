@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     if (!isAuthenticated || !user) {
       // Redirect to login if not authenticated
-      router.push('/login');
+      router.push('/auth/login');
       return;
     }
 
@@ -21,13 +21,13 @@ export default function Home() {
 
     switch (role) {
       case 'super_admin':
-        redirectPath = '/super-admin/dashboard';
+        redirectPath = '/admin/dashboard';
         break;
       case 'managing_director':
-        redirectPath = '/managing-director/dashboard';
+        redirectPath = '/ceo/dashboard';
         break;
       case 'department_head':
-        redirectPath = '/department-head/dashboard';
+        redirectPath = '/director/dashboard';
         break;
       case 'hr_manager':
         redirectPath = '/hr-manager/dashboard';
@@ -42,7 +42,7 @@ export default function Home() {
         redirectPath = '/employee/dashboard';
         break;
       default:
-        redirectPath = '/login';
+        redirectPath = '/auth/login';
     }
 
     router.push(redirectPath);

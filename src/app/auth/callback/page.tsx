@@ -99,14 +99,14 @@ export default function AuthCallbackPage() {
           let redirectPath = '/';
           
           switch (role) {
-            case 'super_admin':
-              redirectPath = '/super-admin/dashboard';
+            case 'admin':
+              redirectPath = '/admin/dashboard';
               break;
-            case 'managing_director':
-              redirectPath = '/managing-director/dashboard';
+            case 'ceo':
+              redirectPath = '/ceo/dashboard';
               break;
-            case 'department_head':
-              redirectPath = '/department-head/dashboard';
+            case 'director':
+              redirectPath = '/director/dashboard';
               break;
             case 'hr_manager':
               redirectPath = '/hr-manager/dashboard';
@@ -174,7 +174,7 @@ export default function AuthCallbackPage() {
               Please contact your administrator to grant access to your account.
             </p>
             <Button 
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/auth/login')}
               className="w-full"
               size="lg"
             >
@@ -201,7 +201,7 @@ export default function AuthCallbackPage() {
           </CardHeader>
           <CardContent className="text-center">
             <Button 
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/auth/login')}
               className="w-full"
               size="lg"
             >

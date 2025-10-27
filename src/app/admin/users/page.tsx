@@ -868,7 +868,7 @@ const AllUsers = () => {
 
       {/* User Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
             <DialogDescription>
@@ -888,7 +888,7 @@ const AllUsers = () => {
           resetUserForm();
         }
       }}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Add New User - Step {createStep} of 3</DialogTitle>
             <DialogDescription>
@@ -919,7 +919,7 @@ const AllUsers = () => {
           </div>
 
           {/* Step Content */}
-          <div className="min-h-[400px]">
+          <div className="flex-1 overflow-y-auto min-h-[400px]">
             {createStep === 1 && (
               <ZitadelUserSelector
                 onSelect={handleZitadelUserSelect}
@@ -927,7 +927,11 @@ const AllUsers = () => {
               />
             )}
 
-            {createStep === 2 && <UserFormStep2 />}
+            {createStep === 2 && (
+              <div className="max-h-[60vh] overflow-y-auto">
+                <UserFormStep2 />
+              </div>
+            )}
 
             {createStep === 3 && (
               <div className="space-y-4">
@@ -995,7 +999,7 @@ const AllUsers = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -1009,7 +1013,7 @@ const AllUsers = () => {
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details">
+            <TabsContent value="details" className="max-h-[50vh] overflow-y-auto">
               <UserFormStep2 />
             </TabsContent>
 

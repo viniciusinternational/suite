@@ -21,7 +21,7 @@ export default function HRManagerLayout({ children }: HRManagerLayoutProps) {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   if (isChecking || !user) {

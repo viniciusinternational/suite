@@ -401,7 +401,7 @@ const DepartmentManagement = () => {
                 Add Unit
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Unit</DialogTitle>
                 <DialogDescription>
@@ -425,7 +425,7 @@ const DepartmentManagement = () => {
                 Add Department
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Department</DialogTitle>
                 <DialogDescription>
@@ -649,7 +649,7 @@ const DepartmentManagement = () => {
 
       {/* Edit Department Dialog */}
       <Dialog open={isEditDeptOpen} onOpenChange={setIsEditDeptOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Department</DialogTitle>
             <DialogDescription>

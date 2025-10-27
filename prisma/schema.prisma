@@ -23,6 +23,7 @@ model Department {
 
   // Relations
   units       DepartmentUnit[]
+  projects    Project[]
   head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
 
   @@map("departments")
@@ -68,6 +69,126 @@ model User {
   // Relations
   departmentHeadOf Department[]     @relation("DepartmentHead")
   unitManagerOf    DepartmentUnit[] @relation("UnitManager")
+  projectsManaged  Project[]        @relation("ProjectManager")
+  tasksAssigned    Task[]          @relation("TaskAssignee")
+  approvals        Approval[]
+  auditLogs        AuditLog[]      @relation("AuditLogUser")
 
   @@map("users")
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  code        String    @unique
+  description String?
+  clientName  String?
+  departmentId String
+  managerId  String
+  budget      Float
+  spent       Float     @default(0)
+  startDate   String
+  endDate     String
+  status      String    @default("planning") // planning, active, on_hold, completed, cancelled
+  priority    String    @default("medium")   // low, medium, high, critical
+  progress    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  department  Department @relation(fields: [departmentId], references: [id])
+  manager     User       @relation("ProjectManager", fields: [managerId], references: [id])
+  milestones  Milestone[]
+  tasks       Task[]
+  approvals   Approval[]
+
+  @@map("projects")
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  dueDate     String
+  status      String   @default("pending") // pending, in_progress, completed, overdue
+  progress    Int      @default(0)
+  budget      Float    @default(0)
+  spent       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@map("milestones")
+}
+
+model Task {
+  id             String   @id @default(cuid())
+  projectId      String
+  milestoneId    String?
+  name           String
+  description    String?
+  assigneeId     String?
+  status         String   @default("todo") // todo, in_progress, review, completed
+  priority       String   @default("medium") // low, medium, high
+  startDate      String?
+  dueDate        String?
+  estimatedHours Float?
+  actualHours    Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone      Milestone? @relation(fields: [milestoneId], references: [id])
+  assignee       User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@map("tasks")
+}
+
+model Approval {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  level      String   // director, ceo
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("approvals")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userSnapshot Json     // Stores user details at time of action {id, fullName, email, role, departmentId}
+  actionType   String   // CREATE, UPDATE, DELETE, READ, USER_LOGIN, etc.
+  entityType   String   // User, Project, Department, etc.
+  entityId     String?
+  description  String
+  isSuccessful Boolean  @default(true)
+  previousData Json?    // JSON snapshot of data before change
+  newData      Json?    // JSON snapshot of data after change
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user         User?    @relation("AuditLogUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([actionType])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }

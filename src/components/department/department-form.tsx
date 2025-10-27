@@ -103,7 +103,7 @@ export const DepartmentForm: React.FC<DepartmentFormProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Basic Information Section */}
       <Card>
         <CardHeader className="pb-4">
@@ -303,7 +303,7 @@ export const DepartmentForm: React.FC<DepartmentFormProps> = ({
       </Card>
       
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end gap-3 pt-6">
         <Button variant="outline" onClick={onCancel} type="button">
           Cancel
         </Button>

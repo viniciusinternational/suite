@@ -21,7 +21,7 @@ export default function AccountantLayout({ children }: AccountantLayoutProps) {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   if (isChecking || !user) {

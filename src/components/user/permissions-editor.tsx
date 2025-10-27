@@ -101,8 +101,9 @@ export function PermissionsEditor({ value = {}, onChange }: PermissionsEditorPro
             id="json-editor"
             value={jsonMode}
             onChange={(e) => handleJsonChange(e.target.value)}
-            className="font-mono text-sm min-h-[300px]"
+            className="font-mono text-sm h-[300px]"
             placeholder='{"create_project": true, "approve_payment": false}'
+            rows={12}
           />
           <div className="flex justify-between items-center">
             <p className="text-xs text-gray-500">

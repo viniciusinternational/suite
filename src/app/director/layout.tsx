@@ -16,12 +16,12 @@ interface DepartmentHeadLayoutProps {
 
 export default function DepartmentHeadLayout({ children }: DepartmentHeadLayoutProps) {
   const router = useRouter();
-  const { isChecking, user } = useAuthGuard(['department_head']);
+  const { isChecking, user } = useAuthGuard(['director']);
   const { logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   if (isChecking || !user) {

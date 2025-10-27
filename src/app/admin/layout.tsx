@@ -16,12 +16,12 @@ interface SuperAdminLayoutProps {
 
 export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
   const router = useRouter();
-  const { isChecking, user } = useAuthGuard(['super_admin']);
+  const { isChecking, user } = useAuthGuard(['admin']);
   const { logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   if (isChecking || !user) {
