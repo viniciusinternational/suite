@@ -19,15 +19,16 @@ const createTaskSchema = z.object({
 // GET /api/projects/[id]/tasks - List tasks for a project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const milestoneId = searchParams.get('milestoneId');
 
     // Check if project exists
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!project) {
@@ -40,7 +41,7 @@ export async function GET(
       );
     }
 
-    const where: any = { projectId: params.id };
+    const where: any = { projectId: id };
     if (milestoneId && milestoneId !== 'all') {
       where.milestoneId = milestoneId;
     }
@@ -88,15 +89,16 @@ export async function GET(
 // POST /api/projects/[id]/tasks - Create task
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = createTaskSchema.parse(body);
 
     // Check if project exists
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!project) {
@@ -115,7 +117,7 @@ export async function POST(
         where: { id: validatedData.milestoneId },
       });
 
-      if (!milestone || milestone.projectId !== params.id) {
+      if (!milestone || milestone.projectId !== id) {
         return NextResponse.json(
           {
             ok: false,
@@ -175,7 +177,7 @@ export async function POST(
 
     const task = await prisma.task.create({
       data: {
-        projectId: params.id,
+        projectId: id,
         name: validatedData.name,
         description: validatedData.description,
         milestoneId: validatedData.milestoneId,

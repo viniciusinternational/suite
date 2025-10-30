@@ -63,7 +63,7 @@ export function TaskForm({
   const { data: milestones = [] } = useQuery({
     queryKey: ['milestones', projectId],
     queryFn: async () => {
-      const response = await axios.get(`/api/projects/${projectId}/milestones`);
+      const response = await axios.get(`/projects/${projectId}/milestones`);
       return response.data.data as Milestone[];
     },
   });
@@ -72,7 +72,7 @@ export function TaskForm({
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const response = await axios.get('/api/users');
+      const response = await axios.get('/users');
       return response.data.data;
     },
   });

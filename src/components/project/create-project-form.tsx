@@ -58,7 +58,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
-      const response = await axios.get('/api/departments');
+      const response = await axios.get('/departments');
       return response.data.data;
     },
   });
@@ -68,7 +68,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
     queryKey: ['users', selectedDepartment],
     queryFn: async () => {
       if (!selectedDepartment) return [];
-      const response = await axios.get(`/api/users?department=${selectedDepartment}`);
+      const response = await axios.get(`/users?department=${selectedDepartment}`);
       return response.data.data;
     },
     enabled: !!selectedDepartment,

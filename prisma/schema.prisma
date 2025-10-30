@@ -25,6 +25,7 @@ model Department {
   units       DepartmentUnit[]
   projects    Project[]
   head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
+  events      Event[]         @relation("EventDepartments")
 
   @@map("departments")
 }
@@ -41,6 +42,7 @@ model DepartmentUnit {
   // Relations
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   manager      User?      @relation("UnitManager", fields: [managerId], references: [id])
+  events       Event[]    @relation("EventUnits")
 
   @@map("department_units")
 }
@@ -73,6 +75,8 @@ model User {
   tasksAssigned    Task[]          @relation("TaskAssignee")
   approvals        Approval[]
   auditLogs        AuditLog[]      @relation("AuditLogUser")
+  createdEvents    Event[]         @relation("EventCreatedBy")
+  events           Event[]         @relation("EventUsers")
 
   @@map("users")
 }
@@ -191,4 +195,25 @@ model AuditLog {
   @@index([createdAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  tags          String[]
+  link          String?
+  startDateTime DateTime
+  endDateTime   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+
+  // Relations
+  createdBy     User?             @relation("EventCreatedBy", fields: [createdById], references: [id])
+  users         User[]            @relation("EventUsers")
+  departments   Department[]      @relation("EventDepartments")
+  units         DepartmentUnit[]  @relation("EventUnits")
+
+  @@map("events")
 }

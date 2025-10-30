@@ -19,18 +19,19 @@ const updateTaskSchema = z.object({
 // PUT /api/projects/[id]/tasks/[taskId] - Update task
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
+    const { id, taskId } = await params;
     const body = await request.json();
     const validatedData = updateTaskSchema.parse(body);
 
     // Check if task exists and belongs to the project
     const existingTask = await prisma.task.findUnique({
-      where: { id: params.taskId },
+      where: { id: taskId },
     });
 
-    if (!existingTask || existingTask.projectId !== params.id) {
+      if (!existingTask || existingTask.projectId !== id) {
       return NextResponse.json(
         {
           ok: false,
@@ -46,7 +47,7 @@ export async function PUT(
         where: { id: validatedData.milestoneId },
       });
 
-      if (!milestone || milestone.projectId !== params.id) {
+      if (!milestone || milestone.projectId !== id) {
         return NextResponse.json(
           {
             ok: false,
@@ -76,7 +77,7 @@ export async function PUT(
 
     // Update task
     const updatedTask = await prisma.task.update({
-      where: { id: params.taskId },
+      where: { id: taskId },
       data: validatedData,
       include: {
         assignee: {
@@ -128,15 +129,16 @@ export async function PUT(
 // DELETE /api/projects/[id]/tasks/[taskId] - Delete task
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
+    const { id, taskId } = await params;
     // Check if task exists and belongs to the project
     const existingTask = await prisma.task.findUnique({
-      where: { id: params.taskId },
+      where: { id: taskId },
     });
 
-    if (!existingTask || existingTask.projectId !== params.id) {
+    if (!existingTask || existingTask.projectId !== id) {
       return NextResponse.json(
         {
           ok: false,
@@ -148,7 +150,7 @@ export async function DELETE(
 
     // Delete task
     await prisma.task.delete({
-      where: { id: params.taskId },
+      where: { id: taskId },
     });
 
     return NextResponse.json({

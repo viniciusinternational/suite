@@ -15,11 +15,12 @@ const updateDepartmentSchema = z.object({
 // GET /api/departments/[id] - Get single department
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const department = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         units: {
           include: {
@@ -71,15 +72,16 @@ export async function GET(
 // PUT /api/departments/[id] - Update department
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json()
     const validatedData = updateDepartmentSchema.parse(body)
 
     // Check if department exists
     const existingDepartment = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingDepartment) {
@@ -143,7 +145,7 @@ export async function PUT(
     }
 
     const department = await prisma.department.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...validatedData,
         headId,
@@ -201,12 +203,13 @@ export async function PUT(
 // DELETE /api/departments/[id] - Delete department
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if department exists
     const existingDepartment = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         units: true,
       },
@@ -234,7 +237,7 @@ export async function DELETE(
     }
 
     await prisma.department.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({

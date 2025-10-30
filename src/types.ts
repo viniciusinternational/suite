@@ -1,7 +1,81 @@
 // User Types and Roles
-export type   UserRole = 'admin'| 'ceo'| 'director' | 'hr_manager'| 'administrator'| 'accountant' | 'employee';
+export type UserRole = 'admin' | 'ceo' | 'director' | 'hr_manager' | 'administrator' | 'accountant' | 'employee';
 export type Sector = 'construction' | 'engineering' | 'legal' | 'administration' | 'consulting' | 'other';
-export type Permission = 'create' | 'read' | 'update' | 'delete';
+
+// Permission Types - Granular permissions per module
+export type PermissionKey =
+  // Dashboard
+  | 'view_dashboard'
+  // Projects Module
+  | 'view_projects'
+  | 'add_projects'
+  | 'edit_projects'
+  | 'delete_projects'
+  | 'approve_projects'
+  // Users Module
+  | 'view_users'
+  | 'add_users'
+  | 'edit_users'
+  | 'delete_users'
+  // Departments Module
+  | 'view_departments'
+  | 'add_departments'
+  | 'edit_departments'
+  | 'delete_departments'
+  // Requests Module
+  | 'view_requests'
+  | 'add_requests'
+  | 'edit_requests'
+  | 'delete_requests'
+  | 'approve_requests'
+  // Payments Module
+  | 'view_payments'
+  | 'add_payments'
+  | 'edit_payments'
+  | 'delete_payments'
+  | 'approve_payments'
+  // Payroll Module
+  | 'view_payroll'
+  | 'add_payroll'
+  | 'edit_payroll'
+  | 'delete_payroll'
+  // Leave Module
+  | 'view_leave'
+  | 'add_leave'
+  | 'edit_leave'
+  | 'delete_leave'
+  | 'approve_leave'
+  // Reports Module
+  | 'view_reports'
+  // Audit Logs Module
+  | 'view_audit_logs'
+  // Events Module
+  | 'view_events'
+  | 'add_events'
+  | 'edit_events'
+  | 'delete_events'
+  // Approvals Module
+  | 'view_approvals'
+  | 'approve_approvals'
+  // Settings Module
+  | 'view_settings'
+  | 'edit_settings'
+  // Team Module
+  | 'view_team'
+  | 'edit_team'
+  // Timesheets Module
+  | 'view_timesheets'
+  | 'add_timesheets'
+  | 'edit_timesheets'
+  | 'delete_timesheets'
+  // Performance Module
+  | 'view_performance'
+  | 'add_performance'
+  | 'edit_performance'
+  | 'delete_performance';
+
+// Permission record type
+export type UserPermissions = Record<PermissionKey, boolean>;
 
 // Auth Types
 export interface AuthState {
@@ -45,7 +119,7 @@ export interface User {
   salary: number;
   avatar?: string;
   isActive: boolean;
-  permissions?: Record<string, boolean>;
+  permissions?: UserPermissions;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,7 +158,6 @@ export interface DepartmentUnit {
 
 export interface Approval {
   id: string;
-  projectId: string;
   userId: string;
   level: 'director' | 'ceo';
   status: 'pending' | 'approved' | 'rejected';
@@ -92,12 +165,6 @@ export interface Approval {
   comments?: string;
   createdAt?: string;
   updatedAt?: string;
-  user?: {
-    id: string;
-    fullName: string;
-    email: string;
-    role: string;
-  };
 }
 
 
@@ -121,23 +188,6 @@ export interface Project {
   approvals?: Approval[];
   createdAt?: string;
   updatedAt?: string;
-  department?: {
-    id: string;
-    name: string;
-    code: string;
-    sector?: string;
-  };
-  manager?: {
-    id: string;
-    fullName: string;
-    email: string;
-    role: string;
-    avatar?: string;
-  };
-  _count?: {
-    milestones: number;
-    tasks: number;
-  };
 }
 
 export interface Milestone {
@@ -153,9 +203,6 @@ export interface Milestone {
   createdAt?: string;
   updatedAt?: string;
   tasks?: Task[];
-  _count?: {
-    tasks: number;
-  };
 }
 
 export interface Task {
@@ -173,17 +220,6 @@ export interface Task {
   actualHours?: number;
   createdAt?: string;
   updatedAt?: string;
-  assignee?: {
-    id: string;
-    fullName: string;
-    email: string;
-    avatar?: string;
-    role: string;
-  };
-  milestone?: {
-    id: string;
-    name: string;
-  };
 }
 
 export interface LeaveRequest {
@@ -249,37 +285,29 @@ export interface RequestForm {
   requestedBy: string; // Employee ID
   departmentId: string; // Department of requester
   type: 'office_supplies' | 'equipment' | 'travel' | 'training' | 'other';
-  currentStatus: 'pending_dept_head' | 'pending_admin_head' | 'approved' | 'rejected';
-  approvedByDeptHeadId?: string;
-  approvedByAdminId?: string;
-  rejectionReason?: string;
-  associatedPaymentId?: string;
+  status: 'pending_dept_head' | 'pending_admin_head' | 'approved' | 'rejected';
   requestDate: string;
   items?: Item[];
-  totalAmount?: number;
+  amount?: number;
+  currency?: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   category?: string;
   attachments?: string[];
   comments?: string[];
+  approvals: Approval[];
 }
 
 export interface Payment {
   id: string;
-  requestForms: RequestForm[]; // Link to RequestFormA for traceability
-  items: Item[];
-  total: number;
+  requestFormId: string;
+  amount: number;
   date: string;
   status: 'pending' | 'approved' | 'paid' | 'failed' | 'cancelled';
-  paymentMethod?: 'bank_transfer' | 'check' | 'cash' | 'credit_card';
-  vendorId?: string;
-  approvedBy?: string; // Managing Director or authorized approver
-  approvedAt?: string;
+  method: 'bank_transfer' | 'check' | 'cash' | 'credit_card';
   paidBy?: string; // Accountant who processed the payment
   paidAt?: string;
-  referenceNumber?: string;
+  reference?: string;
   notes?: string;
-  comments?: string[];
-
 }
 
 
@@ -353,6 +381,34 @@ export interface AuditLog {
   userAgent?: string;
   timestamp: Date | string;
   createdAt: Date | string;
+}
+
+// Events
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  tags: string[];
+  link?: string;
+  startDateTime: string;
+  endDateTime: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  units?: Pick<DepartmentUnit, 'id' | 'name' | 'departmentId'>[];
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Navigation Types
+export interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  href?: string;
+  permissions?: PermissionKey[]; // Required permissions to see this item
+  badge?: string;
+  children?: NavigationItem[];
 }
 
 // API Response Types

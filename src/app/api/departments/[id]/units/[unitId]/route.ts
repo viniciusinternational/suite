@@ -4,12 +4,13 @@ import { prisma } from '@/lib/prisma'
 // DELETE /api/departments/[id]/units/[unitId] - Delete unit
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; unitId: string } }
+  { params }: { params: Promise<{ id: string; unitId: string }> }
 ) {
   try {
+    const { id, unitId } = await params;
     // Check if department exists
     const department = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!department) {
@@ -24,7 +25,7 @@ export async function DELETE(
 
     // Check if unit exists
     const unit = await prisma.departmentUnit.findUnique({
-      where: { id: params.unitId },
+      where: { id: unitId },
     })
 
     if (!unit) {
@@ -38,7 +39,7 @@ export async function DELETE(
     }
 
     // Verify unit belongs to the department
-    if (unit.departmentId !== params.id) {
+      if (unit.departmentId !== id) {
       return NextResponse.json(
         {
           ok: false,
@@ -49,7 +50,7 @@ export async function DELETE(
     }
 
     await prisma.departmentUnit.delete({
-      where: { id: params.unitId },
+      where: { id: unitId },
     })
 
     return NextResponse.json({

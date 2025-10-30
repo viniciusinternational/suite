@@ -20,7 +20,7 @@ export function useProjects(filters?: ProjectFilters) {
       if (filters?.department) params.append('department', filters.department);
       if (filters?.search) params.append('search', filters.search);
 
-      const response = await axios.get(`/api/projects?${params.toString()}`);
+      const response = await axios.get(`/projects?${params.toString()}`);
       return response.data.data as Project[];
     },
   });
@@ -32,7 +32,7 @@ export function useProject(id: string | undefined) {
     queryKey: ['project', id],
     queryFn: async () => {
       if (!id) return null;
-      const response = await axios.get(`/api/projects/${id}`);
+      const response = await axios.get(`/projects/${id}`);
       return response.data.data as Project;
     },
     enabled: !!id,
@@ -45,7 +45,7 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.post('/api/projects', data);
+      const response = await axios.post('/projects', data);
       return response.data;
     },
     onSuccess: () => {
@@ -60,7 +60,7 @@ export function useUpdateProject(id: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.put(`/api/projects/${id}`, data);
+      const response = await axios.put(`/projects/${id}`, data);
       return response.data;
     },
     onSuccess: () => {
@@ -76,7 +76,7 @@ export function useDeleteProject() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await axios.delete(`/api/projects/${id}`);
+      const response = await axios.delete(`/projects/${id}`);
       return response.data;
     },
     onSuccess: () => {

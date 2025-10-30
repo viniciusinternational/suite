@@ -1,41 +1,45 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store';
-import type { UserRole } from '@/types';
+import { hasAnyPermission } from '@/lib/permissions';
+import type { PermissionKey } from '@/types';
 
 interface UseAuthGuardReturn {
   isChecking: boolean;
   user: any | null;
 }
 
-export function useAuthGuard(allowedRoles?: UserRole[]): UseAuthGuardReturn {
+export function useAuthGuard(requiredPermissions?: PermissionKey[]): UseAuthGuardReturn {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, user } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    console.log('isAuthenticated', isAuthenticated);
-    console.log('user', user);
-    console.log('allowedRoles', allowedRoles);
     // Check authentication
-    // if (!isAuthenticated || !user) {
-    //   router.push('/auth/login');
-    //   return;
-    // }
+    if (!isAuthenticated || !user) {
+      router.push('/auth/login');
+      return;
+    }
 
-    // Check role authorization if allowed roles are specified
-    // if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    //   // User doesn't have permission for this role
-    //   router.push('/auth/login');
-    //   return;
-    // }
+    // Check permissions if required permissions are specified
+    if (requiredPermissions && requiredPermissions.length > 0) {
+      if (!hasAnyPermission(user, requiredPermissions)) {
+        // User doesn't have required permissions
+        // If already on dashboard, don't redirect (avoid infinite loop)
+        if (pathname !== '/dashboard') {
+          router.push('/dashboard');
+          return;
+        }
+        // If on dashboard and missing permission, still allow (will show no access message)
+      }
+    }
 
     // User is authenticated and authorized
     setIsChecking(false);
-  }, [isAuthenticated, user, router, allowedRoles]);
+  }, [isAuthenticated, user, router, requiredPermissions, pathname]);
 
   return { isChecking, user };
 }
-

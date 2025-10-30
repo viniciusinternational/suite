@@ -8,7 +8,7 @@ export function useMilestones(projectId: string | undefined) {
     queryKey: ['milestones', projectId],
     queryFn: async () => {
       if (!projectId) return [];
-      const response = await axios.get(`/api/projects/${projectId}/milestones`);
+      const response = await axios.get(`/projects/${projectId}/milestones`);
       return response.data.data as Milestone[];
     },
     enabled: !!projectId,
@@ -21,7 +21,7 @@ export function useCreateMilestone(projectId: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.post(`/api/projects/${projectId}/milestones`, data);
+      const response = await axios.post(`/projects/${projectId}/milestones`, data);
       return response.data;
     },
     onSuccess: () => {
@@ -37,7 +37,7 @@ export function useUpdateMilestone(projectId: string, milestoneId: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.put(`/api/projects/${projectId}/milestones/${milestoneId}`, data);
+      const response = await axios.put(`/projects/${projectId}/milestones/${milestoneId}`, data);
       return response.data;
     },
     onSuccess: () => {
@@ -53,7 +53,7 @@ export function useDeleteMilestone(projectId: string) {
 
   return useMutation({
     mutationFn: async (milestoneId: string) => {
-      const response = await axios.delete(`/api/projects/${projectId}/milestones/${milestoneId}`);
+      const response = await axios.delete(`/projects/${projectId}/milestones/${milestoneId}`);
       return response.data;
     },
     onSuccess: () => {

@@ -13,12 +13,13 @@ const createMilestoneSchema = z.object({
 // GET /api/projects/[id]/milestones - List milestones for a project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if project exists
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!project) {
@@ -32,7 +33,7 @@ export async function GET(
     }
 
     const milestones = await prisma.milestone.findMany({
-      where: { projectId: params.id },
+      where: { projectId: id },
       include: {
         _count: {
           select: {
@@ -64,15 +65,16 @@ export async function GET(
 // POST /api/projects/[id]/milestones - Create milestone
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = createMilestoneSchema.parse(body);
 
     // Check if project exists
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!project) {
@@ -102,7 +104,7 @@ export async function POST(
 
     const milestone = await prisma.milestone.create({
       data: {
-        projectId: params.id,
+        projectId: id,
         name: validatedData.name,
         description: validatedData.description,
         dueDate: validatedData.dueDate,

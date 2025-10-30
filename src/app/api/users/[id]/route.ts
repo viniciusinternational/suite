@@ -2,33 +2,65 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Helpers to gracefully handle typical UI inputs (empty strings, string numbers, nulls)
+const optionalNonEmptyString = z
+  .preprocess((value) => (value === '' ? undefined : value), z.string().min(1))
+  .optional();
+
+const optionalStringAllowEmpty = z
+  .preprocess((value) => (value === '' ? undefined : value), z.string())
+  .optional();
+
+const optionalNullableString = z
+  .preprocess((value) => (value === '' ? null : value), z.string().optional().nullable())
+  .nullable()
+  .optional();
+
+const optionalPositiveNumber = z
+  .preprocess((value) => {
+    if (value === '' || value === undefined || value === null) return undefined;
+    return value;
+  }, z.coerce.number().positive())
+  .optional();
+
 const updateUserSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  fullName: z.string().min(1).optional(),
-  phone: z.string().min(1).optional(),
-  dob: z.string().optional(),
-  gender: z.string().optional(),
+  firstName: optionalNonEmptyString,
+  lastName: optionalNonEmptyString,
+  fullName: optionalNonEmptyString,
+  phone: optionalNonEmptyString,
+  dob: optionalStringAllowEmpty,
+  gender: optionalStringAllowEmpty,
   email: z.string().email().optional(),
-  role: z.enum(['super_admin', 'managing_director', 'department_head', 'hr_manager', 'administrator', 'accountant', 'employee']).optional(),
-  departmentId: z.string().optional(),
-  employeeId: z.string().optional(),
-  position: z.string().min(1).optional(),
-  hireDate: z.string().optional(),
-  salary: z.number().positive().optional(),
-  avatar: z.string().optional(),
-  permissions: z.record(z.boolean()).optional(),
+  role: z
+    .enum([
+      'super_admin',
+      'managing_director',
+      'department_head',
+      'hr_manager',
+      'administrator',
+      'accountant',
+      'employee',
+    ])
+    .optional(),
+  departmentId: optionalNullableString,
+  employeeId: optionalNullableString,
+  position: optionalNonEmptyString,
+  hireDate: optionalStringAllowEmpty,
+  salary: optionalPositiveNumber,
+  avatar: optionalNullableString,
+  permissions: z.record(z.boolean()).optional().nullable(),
   isActive: z.boolean().optional(),
 });
 
 // GET /api/users/[id] - Get single user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         departmentHeadOf: {
           select: {
@@ -83,15 +115,16 @@ export async function GET(
 // PUT /api/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateUserSchema.parse(body);
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingUser) {
@@ -140,7 +173,7 @@ export async function PUT(
 
     // Update user
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -182,12 +215,13 @@ export async function PUT(
 // DELETE /api/users/[id] - Soft delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingUser) {
@@ -202,7 +236,7 @@ export async function DELETE(
 
     // Soft delete by setting isActive to false
     const deletedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: { isActive: false },
     });
 

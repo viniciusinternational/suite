@@ -22,11 +22,12 @@ const updateProjectSchema = z.object({
 // GET /api/projects/[id] - Get single project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         department: {
           select: {
@@ -115,15 +116,16 @@ export async function GET(
 // PUT /api/projects/[id] - Update project
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateProjectSchema.parse(body);
 
     // Check if project exists
     const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingProject) {
@@ -173,7 +175,7 @@ export async function PUT(
 
     // Update project
     const updatedProject = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
       include: {
         department: {
@@ -231,12 +233,13 @@ export async function PUT(
 // DELETE /api/projects/[id] - Delete project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if project exists
     const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingProject) {
@@ -251,7 +254,7 @@ export async function DELETE(
 
     // Delete project (cascade will delete related milestones, tasks, approvals)
     await prisma.project.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

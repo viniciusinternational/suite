@@ -16,18 +16,19 @@ const updateMilestoneSchema = z.object({
 // PUT /api/projects/[id]/milestones/[milestoneId] - Update milestone
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; milestoneId: string } }
+  { params }: { params: Promise<{ id: string; milestoneId: string }> }
 ) {
   try {
+    const { id, milestoneId } = await params;
     const body = await request.json();
     const validatedData = updateMilestoneSchema.parse(body);
 
     // Check if milestone exists and belongs to the project
     const existingMilestone = await prisma.milestone.findUnique({
-      where: { id: params.milestoneId },
+      where: { id: milestoneId },
     });
 
-    if (!existingMilestone || existingMilestone.projectId !== params.id) {
+      if (!existingMilestone || existingMilestone.projectId !== id) {
       return NextResponse.json(
         {
           ok: false,
@@ -39,7 +40,7 @@ export async function PUT(
 
     // Update milestone
     const updatedMilestone = await prisma.milestone.update({
-      where: { id: params.milestoneId },
+      where: { id: milestoneId },
       data: validatedData,
       include: {
         _count: {
@@ -81,12 +82,13 @@ export async function PUT(
 // DELETE /api/projects/[id]/milestones/[milestoneId] - Delete milestone
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; milestoneId: string } }
+  { params }: { params: Promise<{ id: string; milestoneId: string }> }
 ) {
   try {
+    const { id, milestoneId } = await params;
     // Check if milestone exists and belongs to the project
     const existingMilestone = await prisma.milestone.findUnique({
-      where: { id: params.milestoneId },
+      where: { id: milestoneId },
       include: {
         _count: {
           select: {
@@ -96,7 +98,7 @@ export async function DELETE(
       },
     });
 
-    if (!existingMilestone || existingMilestone.projectId !== params.id) {
+      if (!existingMilestone || existingMilestone.projectId !== id) {
       return NextResponse.json(
         {
           ok: false,
@@ -119,7 +121,7 @@ export async function DELETE(
 
     // Delete milestone
     await prisma.milestone.delete({
-      where: { id: params.milestoneId },
+      where: { id: milestoneId },
     });
 
     return NextResponse.json({

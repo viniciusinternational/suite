@@ -15,37 +15,8 @@ export default function Home() {
       return;
     }
 
-    // Redirect to appropriate dashboard based on role
-    const role = user.role;
-    let redirectPath = '/';
-
-    switch (role) {
-      case 'super_admin':
-        redirectPath = '/admin/dashboard';
-        break;
-      case 'managing_director':
-        redirectPath = '/ceo/dashboard';
-        break;
-      case 'department_head':
-        redirectPath = '/director/dashboard';
-        break;
-      case 'hr_manager':
-        redirectPath = '/hr-manager/dashboard';
-        break;
-      case 'administrator':
-        redirectPath = '/administrator/dashboard';
-        break;
-      case 'accountant':
-        redirectPath = '/accountant/dashboard';
-        break;
-      case 'employee':
-        redirectPath = '/employee/dashboard';
-        break;
-      default:
-        redirectPath = '/auth/login';
-    }
-
-    router.push(redirectPath);
+    // Redirect to dashboard
+    router.push('/dashboard');
   }, [isAuthenticated, user, router]);
 
   // Show loading state while redirecting

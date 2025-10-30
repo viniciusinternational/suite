@@ -1,363 +1,178 @@
-import type { NavigationItem, UserRole } from '@/types';
+import type { NavigationItem, PermissionKey } from '@/types';
+import { hasAnyPermission } from '@/lib/permissions';
+import type { User } from '@/types';
 
 export const navigationConfig: NavigationItem[] = [
-  // Super Admin Navigation
+  // Dashboard - Always accessible to authenticated users (no permission required)
   {
-    id: 'super-admin-dashboard',
+    id: 'dashboard',
     label: 'Dashboard',
     icon: 'LayoutDashboard',
-    href: '/admin/dashboard',
-    roles: ['super_admin'],
+    href: '/dashboard',
+    permissions: [], // Empty array means always accessible when authenticated
   },
+  // Projects Module
   {
-    id: 'super-admin-departments',
-    label: 'Departments',
-    icon: 'Building2',
-    href: '/admin/departments',
-    roles: ['super_admin'],
-  },
-  {
-    id: 'super-admin-projects',
+    id: 'projects',
     label: 'Projects',
     icon: 'FolderOpen',
-    href: '/admin/projects',
-    roles: ['super_admin'],
+    href: '/projects',
+    permissions: ['view_projects'],
   },
+  // Users Module
   {
-    id: 'super-admin-employees',
+    id: 'users',
     label: 'Users',
     icon: 'UserCheck',
-    href: '/admin/users',
-    roles: ['super_admin'],
+    href: '/users',
+    permissions: ['view_users'],
   },
+  // Departments Module
   {
-    id: 'super-admin-settings',
-    label: 'System Settings',
-    icon: 'Settings',
-    href: '/admin/system-settings',
-    roles: ['super_admin'],
+    id: 'departments',
+    label: 'Departments',
+    icon: 'Building2',
+    href: '/departments',
+    permissions: ['view_departments'],
   },
-  // {
-  //   id: 'super-admin-reports',
-  //   label: 'Reports',
-  //   icon: 'BarChart3',
-  //   href: '/super-admin/reports',
-  //   roles: ['super_admin'],
-  // },
-  // {
-  //   id: 'super-admin-billing',
-  //   label: 'Billing',
-  //   icon: 'CreditCard',
-  //   href: '/super-admin/billing',
-  //   roles: ['super_admin'],
-  // },
+  // Events Module
   {
-    id: 'super-admin-audit',
-    label: 'Audit Logs',
+    id: 'events',
+    label: 'Events',
+    icon: 'CalendarDays',
+    href: '/events',
+    permissions: ['view_events'],
+  },
+  // Requests Module
+  {
+    id: 'requests',
+    label: 'Requests',
     icon: 'FileText',
-    href: '/admin/audit-logs',
-    roles: ['super_admin'],
+    href: '/requests',
+    permissions: ['view_requests'],
   },
-
-  // Department Head Navigation
+  // Payments Module
   {
-    id: 'dept-head-dashboard',
-    label: 'Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/department-head/dashboard',
-    roles: ['department_head'],
-  },
-  {
-    id: 'dept-head-projects',
-    label: 'Department Projects',
-    icon: 'FolderOpen',
-    href: '/department-head/projects',
-    roles: ['department_head'],
-  },
-  {
-    id: 'dept-head-team',
-    label: 'Team',
-    icon: 'Users',
-    href: '/department-head/team',
-    roles: ['department_head'],
-  },
-  {
-    id: 'dept-head-request-forms',
-    label: 'Request Forms',
-    icon: 'FileText',
-    href: '/department-head/request-forms',
-    roles: ['department_head'],
-  },
-  {
-    id: 'dept-head-approvals',
-    label: 'Approvals',
-    icon: 'CheckCircle',
-    href: '/department-head/approvals',
-    badge: '0',
-    roles: ['department_head'],
-    children: [
-      {
-        id: 'dept-head-approvals-leave',
-        label: 'Leave Requests',
-        icon: 'Calendar',
-        href: '/department-head/approvals/leave',
-        roles: ['department_head'],
-      },
-      {
-        id: 'dept-head-approvals-projects',
-        label: 'Project Approvals',
-        icon: 'FolderCheck',
-        href: '/department-head/approvals/projects',
-        roles: ['department_head'],
-      },
-      {
-        id: 'dept-head-approvals-procurement',
-        label: 'Procurement',
-        icon: 'ShoppingCart',
-        href: '/department-head/approvals/procurement',
-        roles: ['department_head'],
-      },
-    ],
-  },
-  {
-    id: 'dept-head-budget',
-    label: 'Budget',
-    icon: 'DollarSign',
-    href: '/department-head/budget',
-    roles: ['department_head'],
-  },
-  {
-    id: 'dept-head-reports',
-    label: 'Reports',
-    icon: 'BarChart3',
-    href: '/department-head/reports',
-    roles: ['department_head'],
-  },
-
-
-  // HR Manager Navigation
-  {
-    id: 'hr-dashboard',
-    label: 'Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/hr-manager/dashboard',
-    roles: ['hr_manager'],
-  },
-  {
-    id: 'hr-employees',
-    label: 'User Directory',
-    icon: 'Users',
-    href: '/hr-manager/employee-directory',
-    roles: ['hr_manager'],
-  },
-  {
-    id: 'hr-leave-management',
-    label: 'Leave Management',
-    icon: 'Calendar',
-    href: '/hr-manager/leave-management',
-    roles: ['hr_manager'],
-  },
-  {
-    id: 'hr-payroll',
-    label: 'Payroll Management',
-    icon: 'DollarSign',
-    href: '/hr-manager/payroll',
-    roles: ['hr_manager'],
-  },
-  {
-    id: 'hr-performance-reviews',
-    label: 'Performance Reviews',
-    icon: 'Star',
-    href: '/hr-manager/performance-reviews',
-    roles: ['hr_manager'],
-  },
-
-  // Managing Director Navigation
-  {
-    id: 'managing-director-dashboard',
-    label: 'Executive Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/managing-director/dashboard',
-    roles: ['managing_director'],
-  },
-  {
-    id: 'managing-director-performance',
-    label: 'Performance Overview',
-    icon: 'TrendingUp',
-    href: '/managing-director/performance',
-    roles: ['managing_director'],
-  },
-  {
-    id: 'managing-director-financials',
-    label: 'Financial Insights',
-    icon: 'DollarSign',
-    href: '/managing-director/financials',
-    roles: ['managing_director'],
-  },
-  {
-    id: 'managing-director-approvals',
-    label: 'Approvals & Decisions',
-    icon: 'CheckCircle',
-    href: '/managing-director/approvals',
-    badge: '0',
-    roles: ['managing_director'],
-  },
-  {
-    id: 'managing-director-history',
-    label: 'History',
-    icon: 'Calendar',
-    href: '/managing-director/history',
-    roles: ['managing_director'],
-  },
-
-  // Accountant Navigation
-  {
-    id: 'accountant-dashboard',
-    label: 'Accounting Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/accountant/dashboard',
-    roles: ['accountant'],
-  },
-  {
-    id: 'accountant-payroll',
-    label: 'Payroll Management',
-    icon: 'Users',
-    href: '/accountant/payroll',
-    roles: ['accountant'],
-  },
-  {
-    id: 'accountant-procurement',
-    label: 'Procurement Payments',
-    icon: 'ShoppingCart',
-    href: '/accountant/procurement-payments',
-    roles: ['accountant'],
-  },
-  {
-    id: 'accountant-reports',
-    label: 'Financial Reports',
-    icon: 'BarChart3',
-    href: '/accountant/reports',
-    roles: ['accountant'],
-  },
-  {
-    id: 'accountant-reconciliation',
-    label: 'Payment Reconciliation',
-    icon: 'Calculator',
-    href: '/accountant/reconciliation',
-    roles: ['accountant'],
-  },
-  {
-    id: 'accountant-payments',
-    label: 'Generate Payments',
+    id: 'payments',
+    label: 'Payments',
     icon: 'CreditCard',
-    href: '/accountant/payments',
-    roles: ['accountant'],
+    href: '/payments',
+    permissions: ['view_payments'],
   },
-
-  // Administrator Navigation
+  // Payroll Module
   {
-    id: 'administrator-dashboard',
-    label: 'Admin Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/administrator/dashboard',
-    roles: ['administrator'],
+    id: 'payroll',
+    label: 'Payroll',
+    icon: 'DollarSign',
+    href: '/payroll',
+    permissions: ['view_payroll'],
   },
+  // Leave Module
   {
-    id: 'administrator-request-forms',
-    label: 'Request Forms Management',
-    icon: 'FileText',
-    href: '/administrator/request-forms',
-    roles: ['administrator'],
-  },
-  {
-    id: 'administrator-resources',
-    label: 'Shared Resources',
-    icon: 'Archive',
-    href: '/administrator/resources',
-    roles: ['administrator'],
-  },
-  {
-    id: 'administrator-support',
-    label: 'User Support',
-    icon: 'HelpCircle',
-    href: '/administrator/support',
-    roles: ['administrator'],
-  },
-  {
-    id: 'administrator-approvals',
-    label: 'Approvals',
-    icon: 'CheckCircle',
-    href: '/administrator/approvals',
-    badge: '0',
-    roles: ['administrator'],
-  },
-
-  // Employee Navigation
-  {
-    id: 'employee-dashboard',
-    label: 'Dashboard',
-    icon: 'LayoutDashboard',
-    href: '/employee/dashboard',
-    roles: ['employee'],
-  },
-  {
-    id: 'employee-tasks',
-    label: 'My Tasks',
-    icon: 'CheckSquare',
-    href: '/employee/my-tasks',
-    roles: ['employee'],
-  },
-  {
-    id: 'employee-profile',
-    label: 'My Profile',
-    icon: 'User',
-    href: '/employee/profile',
-    roles: ['employee'],
-  },
-  {
-    id: 'employee-leave',
+    id: 'leave',
     label: 'Leave',
     icon: 'Calendar',
-    href: '/employee/leave',
-    roles: ['employee'],
+    href: '/leave',
+    permissions: ['view_leave'],
   },
+  // Reports Module
   {
-    id: 'employee-payslips',
-    label: 'My Payslips',
+    id: 'reports',
+    label: 'Reports',
+    icon: 'BarChart3',
+    href: '/reports',
+    permissions: ['view_reports'],
+  },
+  // Audit Logs Module
+  {
+    id: 'audit-logs',
+    label: 'Audit Logs',
     icon: 'FileText',
-    href: '/employee/payslips',
-    roles: ['employee'],
+    href: '/audit-logs',
+    permissions: ['view_audit_logs'],
   },
+  // Approvals Module
   {
-    id: 'employee-request-forms',
-    label: 'Request Forms',
-    icon: 'FilePlus',
-    href: '/employee/request-forms',
-    roles: ['employee'],
+    id: 'approvals',
+    label: 'Approvals',
+    icon: 'CheckCircle',
+    href: '/approvals',
+    permissions: ['view_approvals'],
   },
+  // Settings Module
   {
-    id: 'employee-timesheet',
-    label: 'Timesheet',
+    id: 'settings',
+    label: 'Settings',
+    icon: 'Settings',
+    href: '/settings',
+    permissions: ['view_settings'],
+  },
+  // Team Module
+  {
+    id: 'team',
+    label: 'Team',
+    icon: 'Users',
+    href: '/team',
+    permissions: ['view_team'],
+  },
+  // Timesheets Module
+  {
+    id: 'timesheets',
+    label: 'Timesheets',
     icon: 'Clock',
-    href: '/employee/timesheet',
-    roles: ['employee'],
+    href: '/timesheets',
+    permissions: ['view_timesheets'],
+  },
+  // Performance Module
+  {
+    id: 'performance',
+    label: 'Performance',
+    icon: 'Star',
+    href: '/performance',
+    permissions: ['view_performance'],
   },
 ];
 
-export const getNavigationForRole = (userRole: UserRole): NavigationItem[] => {
-  return navigationConfig.filter(item => item.roles.includes(userRole));
-};
+/**
+ * Get navigation items filtered by user permissions
+ */
+export function getNavigationForPermissions(user: User | null): NavigationItem[] {
+  if (!user) {
+    return [];
+  }
 
-export const getRoleBaseDashboard = (userRole: UserRole): string => {
-  const dashboards: Record<UserRole, string> = {
-    super_admin: '/super-admin/dashboard',
-    managing_director: '/managing-director/dashboard',
-    department_head: '/department-head/dashboard',
-    hr_manager: '/hr-manager/dashboard',
-    accountant: '/accountant/dashboard',
-    administrator: '/administrator/dashboard',
-    employee: '/employee/dashboard',
-  };
-  
-  return dashboards[userRole];
-}; 
+  return navigationConfig.filter(item => {
+    // Dashboard is always available to authenticated users
+    if (item.id === 'dashboard') {
+      return true;
+    }
+
+    // If no permissions required, show item (shouldn't happen but safety check)
+    if (!item.permissions || item.permissions.length === 0) {
+      return false;
+    }
+
+    // User needs at least one of the required permissions
+    return hasAnyPermission(user, item.permissions);
+  }).map(item => {
+    // Recursively filter children
+    if (item.children && item.children.length > 0) {
+      return {
+        ...item,
+        children: item.children.filter(child => {
+          if (!child.permissions || child.permissions.length === 0) {
+            return false;
+          }
+          return hasAnyPermission(user, child.permissions);
+        }),
+      };
+    }
+    return item;
+  }).filter(item => {
+    // Remove parent items that have no visible children
+    if (item.children && item.children.length === 0) {
+      return false;
+    }
+    return true;
+  });
+}

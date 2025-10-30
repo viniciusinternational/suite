@@ -12,15 +12,16 @@ const createUnitSchema = z.object({
 // POST /api/departments/[id]/units - Add unit to department
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json()
     const validatedData = createUnitSchema.parse(body)
 
     // Check if department exists
     const department = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!department) {
@@ -67,7 +68,7 @@ export async function POST(
     const unit = await prisma.departmentUnit.create({
       data: {
         ...validatedData,
-        departmentId: params.id,
+        departmentId: id,
         managerId,
       },
       include: {
@@ -112,12 +113,13 @@ export async function POST(
 // GET /api/departments/[id]/units - List units for department
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if department exists
     const department = await prisma.department.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!department) {
@@ -131,7 +133,7 @@ export async function GET(
     }
 
     const units = await prisma.departmentUnit.findMany({
-      where: { departmentId: params.id },
+      where: { departmentId: id },
       include: {
         manager: {
           select: {

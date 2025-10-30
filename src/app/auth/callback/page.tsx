@@ -93,38 +93,9 @@ export default function AuthCallbackPage() {
         });
         setSuccess(true);
         
-        // Redirect to appropriate dashboard based on role from DB
+        // Redirect to dashboard
         setTimeout(() => {
-          const role = dbUser.role;
-          let redirectPath = '/';
-          
-          switch (role) {
-            case 'admin':
-              redirectPath = '/admin/dashboard';
-              break;
-            case 'ceo':
-              redirectPath = '/ceo/dashboard';
-              break;
-            case 'director':
-              redirectPath = '/director/dashboard';
-              break;
-            case 'hr_manager':
-              redirectPath = '/hr-manager/dashboard';
-              break;
-            case 'administrator':
-              redirectPath = '/administrator/dashboard';
-              break;
-            case 'accountant':
-              redirectPath = '/accountant/dashboard';
-              break;
-            case 'employee':
-              redirectPath = '/employee/dashboard';
-              break;
-            default:
-              redirectPath = '/';
-          }
-          
-          router.push(redirectPath);
+          router.push('/dashboard');
         }, 1500);
 
       } catch (err) {

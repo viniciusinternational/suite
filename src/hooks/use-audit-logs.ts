@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import axios from '@/lib/axios';
 import type { AuditLog, AuditActionType, AuditEntityType } from '@/types';
 
 interface UseAuditLogsParams {
@@ -41,7 +41,7 @@ export function useAuditLogs(params: UseAuditLogsParams = {}) {
       if (params.offset) searchParams.append('offset', String(params.offset));
 
       const response = await axios.get<AuditLogsResponse>(
-        `/api/audit-logs?${searchParams.toString()}`
+        `/audit-logs?${searchParams.toString()}`
       );
       return response.data;
     },
@@ -53,7 +53,7 @@ export function useUserAuditHistory(userId: string, limit = 50) {
     queryKey: ['audit-logs', 'user', userId, limit],
     queryFn: async () => {
       const response = await axios.get<AuditLogsResponse>(
-        `/api/audit-logs?userId=${userId}&limit=${limit}`
+        `/audit-logs?userId=${userId}&limit=${limit}`
       );
       return response.data;
     },
@@ -66,7 +66,7 @@ export function useEntityAuditHistory(entityType: AuditEntityType, entityId: str
     queryKey: ['audit-logs', 'entity', entityType, entityId, limit],
     queryFn: async () => {
       const response = await axios.get<AuditLogsResponse>(
-        `/api/audit-logs?entityType=${entityType}&entityId=${entityId}&limit=${limit}`
+        `/audit-logs?entityType=${entityType}&entityId=${entityId}&limit=${limit}`
       );
       return response.data;
     },

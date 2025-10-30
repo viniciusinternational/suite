@@ -18,7 +18,7 @@ export function useTasks(projectId: string | undefined, filters?: TaskFilters) {
         params.append('milestoneId', filters.milestoneId);
       }
 
-      const response = await axios.get(`/api/projects/${projectId}/tasks?${params.toString()}`);
+      const response = await axios.get(`/projects/${projectId}/tasks?${params.toString()}`);
       return response.data.data as Task[];
     },
     enabled: !!projectId,
@@ -31,7 +31,7 @@ export function useCreateTask(projectId: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.post(`/api/projects/${projectId}/tasks`, data);
+      const response = await axios.post(`/projects/${projectId}/tasks`, data);
       return response.data;
     },
     onSuccess: () => {
@@ -47,7 +47,7 @@ export function useUpdateTask(projectId: string, taskId: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.put(`/api/projects/${projectId}/tasks/${taskId}`, data);
+      const response = await axios.put(`/projects/${projectId}/tasks/${taskId}`, data);
       return response.data;
     },
     onSuccess: () => {
@@ -63,7 +63,7 @@ export function useDeleteTask(projectId: string) {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const response = await axios.delete(`/api/projects/${projectId}/tasks/${taskId}`);
+      const response = await axios.delete(`/projects/${projectId}/tasks/${taskId}`);
       return response.data;
     },
     onSuccess: () => {
