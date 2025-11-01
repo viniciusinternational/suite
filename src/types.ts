@@ -293,8 +293,35 @@ export interface RequestForm {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   category?: string;
   attachments?: string[];
-  comments?: string[];
-  approvals: Approval[];
+  comments?: RequestComment[];
+  approvals: RequestApproval[];
+  createdAt?: string;
+  updatedAt?: string;
+  requestedByUser?: Pick<User, 'id' | 'fullName' | 'email' | 'avatar'>;
+  department?: Pick<Department, 'id' | 'name' | 'code'>;
+}
+
+export interface RequestApproval {
+  id: string;
+  requestFormId: string;
+  userId: string;
+  level: 'dept_head' | 'admin_head';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+}
+
+export interface RequestComment {
+  id: string;
+  requestFormId: string;
+  userId: string;
+  content: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'avatar'>;
 }
 
 export interface Payment {
@@ -337,6 +364,11 @@ export type AuditActionType =
   | 'LEAVE_REQUESTED'
   | 'LEAVE_APPROVED'
   | 'LEAVE_REJECTED'
+  | 'REQUEST_CREATED'
+  | 'REQUEST_APPROVED'
+  | 'REQUEST_REJECTED'
+  | 'REQUEST_COMMENT_ADDED'
+  | 'REQUEST_ATTACHMENT_ADDED'
   | 'DEPARTMENT_UPDATED'
   | 'UNIT_CREATED'
   | 'REPORT_GENERATED'
@@ -354,6 +386,8 @@ export type AuditEntityType =
   | 'Payslip'
   | 'Payment'
   | 'RequestForm'
+  | 'RequestApproval'
+  | 'RequestComment'
   | 'Item'
   | 'Vendor'
   | 'Client'

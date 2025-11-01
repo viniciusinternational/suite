@@ -26,6 +26,7 @@ model Department {
   projects    Project[]
   head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
   events      Event[]         @relation("EventDepartments")
+  requestForms RequestForm[]  @relation("RequestFormDepartment")
 
   @@map("departments")
 }
@@ -69,14 +70,17 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  departmentHeadOf Department[]     @relation("DepartmentHead")
-  unitManagerOf    DepartmentUnit[] @relation("UnitManager")
-  projectsManaged  Project[]        @relation("ProjectManager")
-  tasksAssigned    Task[]          @relation("TaskAssignee")
+  departmentHeadOf Department[]        @relation("DepartmentHead")
+  unitManagerOf    DepartmentUnit[]    @relation("UnitManager")
+  projectsManaged  Project[]           @relation("ProjectManager")
+  tasksAssigned    Task[]             @relation("TaskAssignee")
   approvals        Approval[]
-  auditLogs        AuditLog[]      @relation("AuditLogUser")
-  createdEvents    Event[]         @relation("EventCreatedBy")
-  events           Event[]         @relation("EventUsers")
+  auditLogs        AuditLog[]          @relation("AuditLogUser")
+  createdEvents    Event[]             @relation("EventCreatedBy")
+  events           Event[]             @relation("EventUsers")
+  requestsCreated  RequestForm[]       @relation("RequestFormRequester")
+  requestApprovals RequestApproval[]    @relation("RequestApprovalUser")
+  requestComments  RequestComment[]     @relation("RequestCommentUser")
 
   @@map("users")
 }
@@ -216,4 +220,73 @@ model Event {
   units         DepartmentUnit[]  @relation("EventUnits")
 
   @@map("events")
+}
+
+model RequestForm {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  requestedBy String
+  departmentId String
+  type        String   // office_supplies, equipment, travel, training, other
+  status      String   @default("pending_dept_head") // pending_dept_head, pending_admin_head, approved, rejected
+  requestDate String
+  items       Json?    // Array of Item objects
+  amount      Float?
+  currency    String?  @default("NGN")
+  priority    String?  @default("medium") // low, medium, high, urgent
+  category    String?
+  attachments Json?    // Array of file paths/URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  requestedByUser User              @relation("RequestFormRequester", fields: [requestedBy], references: [id])
+  department      Department        @relation("RequestFormDepartment", fields: [departmentId], references: [id])
+  approvals       RequestApproval[]
+  comments        RequestComment[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([requestedBy])
+  @@index([type])
+  @@map("request_forms")
+}
+
+model RequestApproval {
+  id           String   @id @default(cuid())
+  requestFormId String
+  userId       String
+  level        String   // dept_head, admin_head
+  status       String   @default("pending") // pending, approved, rejected
+  actionDate   String?
+  comments     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  requestForm RequestForm @relation(fields: [requestFormId], references: [id], onDelete: Cascade)
+  user        User        @relation("RequestApprovalUser", fields: [userId], references: [id])
+
+  @@index([requestFormId])
+  @@index([userId])
+  @@index([status])
+  @@map("request_approvals")
+}
+
+model RequestComment {
+  id           String   @id @default(cuid())
+  requestFormId String
+  userId       String
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  requestForm RequestForm @relation(fields: [requestFormId], references: [id], onDelete: Cascade)
+  user        User        @relation("RequestCommentUser", fields: [userId], references: [id])
+
+  @@index([requestFormId])
+  @@index([userId])
+  @@map("request_comments")
 }
