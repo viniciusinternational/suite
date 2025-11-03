@@ -36,8 +36,42 @@ export async function GET(request: NextRequest) {
     const requestedBy = searchParams.get('requestedBy');
     const search = searchParams.get('search');
 
+    // Get user info from headers for role-based filtering
+    const headers = request.headers;
+    const userId = headers.get('x-user-id');
+    const userRole = headers.get('x-user-role') as string;
+    const userDepartmentId = headers.get('x-user-department-id');
+
     // Build where clause
     const where: any = {};
+
+    // Role-based filtering
+    if (userId) {
+      if (userRole === 'ceo') {
+        // CEO can see all requests - no filter
+      } else {
+        // Check if user is a department head
+        let isDepartmentHead = false;
+        if (userDepartmentId) {
+          const department = await prisma.department.findUnique({
+            where: { id: userDepartmentId },
+            select: { headId: true },
+          });
+          isDepartmentHead = department?.headId === userId;
+        }
+
+        if (isDepartmentHead || userRole === 'director') {
+          // Department head sees own requests + department-wide requests
+          where.OR = [
+            { requestedBy: userId },
+            { departmentId: userDepartmentId },
+          ];
+        } else {
+          // Regular user sees only own requests
+          where.requestedBy = userId;
+        }
+      }
+    }
 
     if (status && status !== 'all') {
       where.status = status;
@@ -48,18 +82,51 @@ export async function GET(request: NextRequest) {
     }
 
     if (departmentId && departmentId !== 'all') {
-      where.departmentId = departmentId;
+      // If role-based filter already has OR, we need to combine
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { departmentId },
+        ];
+        delete where.OR;
+      } else {
+        where.departmentId = departmentId;
+      }
     }
 
     if (requestedBy && requestedBy !== 'all') {
-      where.requestedBy = requestedBy;
+      // If role-based filter already has OR, we need to combine
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { requestedBy },
+        ];
+        delete where.OR;
+      } else {
+        where.requestedBy = requestedBy;
+      }
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      const searchCondition = {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+
+      // If we have AND or OR already, combine them
+      if (where.AND) {
+        where.AND.push(searchCondition);
+      } else if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          searchCondition,
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchCondition.OR;
+      }
     }
 
     const requests = await prisma.requestForm.findMany({
@@ -142,11 +209,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const validatedData = createRequestSchema.parse(body);
+    const headers = request.headers;
+    
+    // Get requestedBy from header or body
+    const requestedBy = headers.get('x-user-id') || body.requestedBy;
+    
+    if (!requestedBy) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Requester is required. User must be authenticated.',
+        },
+        { status: 401 }
+      );
+    }
+
+    const validatedData = createRequestSchema.parse({
+      ...body,
+      requestedBy,
+    });
 
     // Validate requester exists
     const requester = await prisma.user.findUnique({
-      where: { id: validatedData.requestedBy },
+      where: { id: requestedBy },
     });
 
     if (!requester || !requester.isActive) {
@@ -197,7 +282,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         description: validatedData.description,
-        requestedBy: validatedData.requestedBy,
+        requestedBy: requestedBy,
         departmentId: validatedData.departmentId,
         type: validatedData.type,
         status: 'pending_dept_head',
@@ -287,7 +372,7 @@ export async function POST(request: NextRequest) {
     // Audit log (best-effort)
     try {
       const headers = request.headers;
-      const userId = headers.get('x-user-id') || validatedData.requestedBy;
+      const userId = headers.get('x-user-id') || requestedBy;
       const userSnapshot = {
         id: userId,
         fullName: headers.get('x-user-fullname') || requester.fullName,
@@ -305,7 +390,7 @@ export async function POST(request: NextRequest) {
         description: `Created request "${requestForm.name}" with ${approvals.length} approvals`,
         previousData: null,
         newData: requestForm as any,
-        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        ipAddress: headers.get('x-forwarded-for') ?? undefined,
         userAgent: headers.get('user-agent') ?? undefined,
       });
     } catch (e) {
@@ -321,6 +406,7 @@ export async function POST(request: NextRequest) {
       message: 'Request created successfully',
     });
   } catch (error) {
+    console.error('Validation error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {

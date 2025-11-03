@@ -92,6 +92,38 @@ export default function AuthCallbackPage() {
           name: dbUser.fullName,
         });
         setSuccess(true);
+
+        // Log login event (best-effort, don't block on failure)
+        try {
+          await fetch('/api/audit-logs/auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': dbUser.id,
+              'x-user-fullname': dbUser.fullName,
+              'x-user-email': dbUser.email,
+              'x-user-role': dbUser.role,
+              'x-user-department-id': dbUser.departmentId || '',
+            },
+            body: JSON.stringify({
+              action: 'USER_LOGIN',
+              userId: dbUser.id,
+              userSnapshot: {
+                id: dbUser.id,
+                fullName: dbUser.fullName,
+                email: dbUser.email,
+                role: dbUser.role,
+                departmentId: dbUser.departmentId,
+              },
+              ipAddress: undefined, // Will be captured server-side
+              userAgent: navigator.userAgent,
+            }),
+          }).catch((e) => {
+            console.warn('Failed to log login event:', e);
+          });
+        } catch (e) {
+          console.warn('Failed to log login event:', e);
+        }
         
         // Redirect to dashboard
         setTimeout(() => {

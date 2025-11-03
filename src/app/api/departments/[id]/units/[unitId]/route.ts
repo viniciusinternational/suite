@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 
 // DELETE /api/departments/[id]/units/[unitId] - Delete unit
 export async function DELETE(
@@ -52,6 +53,27 @@ export async function DELETE(
     await prisma.departmentUnit.delete({
       where: { id: unitId },
     })
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DELETE',
+        entityType: 'DepartmentUnit',
+        entityId: unitId,
+        description: `Deleted unit "${unit.name}" from department "${department.name}"`,
+        previousData: unit as any,
+        newData: null,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      })
+    } catch (e) {
+      console.error('Audit log failed (delete unit):', e)
+    }
 
     return NextResponse.json({
       ok: true,

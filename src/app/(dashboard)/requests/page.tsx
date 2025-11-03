@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -36,18 +35,15 @@ import { RequestDetail } from '@/components/request/request-detail';
 import { useRequests, useDeleteRequest, useRequest } from '@/hooks/use-requests';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
-import { useAuthStore } from '@/store/auth-store';
-import { Plus, Search, Filter, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 export default function RequestsPage() {
   const { user } = useAuthGuard(['view_requests']);
-  const { user: authUser } = useAuthStore();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -57,33 +53,16 @@ export default function RequestsPage() {
 
   const deleteRequest = useDeleteRequest();
 
-  // Build filters based on active tab
-  const buildFilters = () => {
-    const filters: any = {
-      search: searchQuery || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
-      type: typeFilter !== 'all' ? typeFilter : undefined,
-      department: departmentFilter !== 'all' ? departmentFilter : undefined,
-    };
-
-    if (activeTab === 'my') {
-      filters.requestedBy = authUser?.id;
-    } else if (activeTab === 'pending') {
-      filters.status = undefined; // Will filter by pending statuses
-    }
-
-    return filters;
+  // Build filters - role-based filtering is handled by API
+  const filters = {
+    search: searchQuery || undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    type: typeFilter !== 'all' ? typeFilter : undefined,
+    department: departmentFilter !== 'all' ? departmentFilter : undefined,
   };
 
-  const filters = buildFilters();
-
-  // Fetch requests
+  // Fetch requests - API will filter based on user role
   const { data: requests = [], isLoading } = useRequests(filters);
-
-  // Filter requests for pending tab
-  const filteredRequests = activeTab === 'pending'
-    ? requests.filter((r: any) => r.status?.includes('pending'))
-    : requests;
 
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({
@@ -214,86 +193,77 @@ export default function RequestsPage() {
         </Card>
       </div>
 
-      {/* Filters and Tabs */}
+      {/* Filters and Requests Table */}
       <Card>
         <CardHeader>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="all">All Requests</TabsTrigger>
-                <TabsTrigger value="my">My Requests</TabsTrigger>
-                <TabsTrigger value="pending">Pending Approval</TabsTrigger>
-              </TabsList>
-            </div>
-          </Tabs>
+          <CardTitle>Requests</CardTitle>
+          <CardDescription>
+            View and manage requests (filtered based on your role)
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsContent value={activeTab} className="mt-0">
-              <div className="space-y-4">
-                {/* Filters */}
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search requests..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending_dept_head">Pending Dept Head</SelectItem>
-                      <SelectItem value="pending_admin_head">Pending Admin Head</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="office_supplies">Office Supplies</SelectItem>
-                      <SelectItem value="equipment">Equipment</SelectItem>
-                      <SelectItem value="travel">Travel</SelectItem>
-                      <SelectItem value="training">Training</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map((dept: any) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search requests..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-
-                {/* Request Table */}
-                <RequestTable
-                  requests={filteredRequests}
-                  onView={handleView}
-                  onEdit={user?.permissions?.edit_requests ? handleEdit : undefined}
-                  onDelete={user?.permissions?.delete_requests ? handleDelete : undefined}
-                />
               </div>
-            </TabsContent>
-          </Tabs>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending_dept_head">Pending Dept Head</SelectItem>
+                  <SelectItem value="pending_admin_head">Pending Admin Head</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="office_supplies">Office Supplies</SelectItem>
+                  <SelectItem value="equipment">Equipment</SelectItem>
+                  <SelectItem value="travel">Travel</SelectItem>
+                  <SelectItem value="training">Training</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((dept: any) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Request Table */}
+            <RequestTable
+              requests={requests}
+              onView={handleView}
+              onEdit={user?.permissions?.edit_requests ? handleEdit : undefined}
+              onDelete={user?.permissions?.delete_requests ? handleDelete : undefined}
+            />
+          </div>
         </CardContent>
       </Card>
 

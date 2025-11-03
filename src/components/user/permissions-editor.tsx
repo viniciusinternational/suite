@@ -150,6 +150,15 @@ const MODULE_PERMISSIONS = [
       { key: 'delete_performance', label: 'Delete Performance', description: 'Remove performance reviews' },
     ],
   },
+  {
+    module: 'Memos',
+    permissions: [
+      { key: 'view_memos', label: 'View Memos', description: 'View memos and announcements' },
+      { key: 'add_memos', label: 'Add Memos', description: 'Create new memos' },
+      { key: 'edit_memos', label: 'Edit Memos', description: 'Modify memos' },
+      { key: 'delete_memos', label: 'Delete Memos', description: 'Remove memos' },
+    ],
+  },
 ];
 
 export function PermissionsEditor({ value = {}, onChange }: PermissionsEditorProps) {

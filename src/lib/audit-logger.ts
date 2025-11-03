@@ -23,25 +23,40 @@ interface CreateAuditLogParams {
 
 /**
  * Create an audit log entry
+ * This function will not throw errors to avoid breaking the main operation
  */
-export async function createAuditLog(params: CreateAuditLogParams): Promise<AuditLog> {
-  const auditLog = await prisma.auditLog.create({
-    data: {
-      userId: params.userId,
-      userSnapshot: params.userSnapshot,
+export async function createAuditLog(params: CreateAuditLogParams): Promise<AuditLog | null> {
+  try {
+    const auditLog = await prisma.auditLog.create({
+      data: {
+        userId: params.userId,
+        userSnapshot: params.userSnapshot,
+        actionType: params.actionType,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        description: params.description,
+        isSuccessful: params.isSuccessful ?? true,
+        previousData: params.previousData ?? null,
+        newData: params.newData ?? null,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      },
+    });
+
+    return auditLog as AuditLog;
+  } catch (error) {
+    // Log error with context but don't throw
+    console.error('Failed to create audit log:', {
       actionType: params.actionType,
       entityType: params.entityType,
       entityId: params.entityId,
+      userId: params.userId,
       description: params.description,
-      isSuccessful: params.isSuccessful ?? true,
-      previousData: params.previousData ?? null,
-      newData: params.newData ?? null,
-      ipAddress: params.ipAddress,
-      userAgent: params.userAgent,
-    },
-  });
-
-  return auditLog as AuditLog;
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return null;
+  }
 }
 
 /**
@@ -143,5 +158,30 @@ export function createUserSnapshot(user: User): {
     role: user.role,
     departmentId: user.departmentId,
   };
+}
+
+/**
+ * Helper function to extract user info from request headers
+ */
+export function getUserInfoFromHeaders(headers: Headers): {
+  userId: string;
+  userSnapshot: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    departmentId?: string;
+  };
+} {
+  const userId = headers.get('x-user-id') || 'system';
+  const userSnapshot = {
+    id: userId,
+    fullName: headers.get('x-user-fullname') || 'Unknown',
+    email: headers.get('x-user-email') || 'unknown@example.com',
+    role: headers.get('x-user-role') || 'unknown',
+    departmentId: headers.get('x-user-department-id') || undefined,
+  };
+
+  return { userId, userSnapshot };
 }
 

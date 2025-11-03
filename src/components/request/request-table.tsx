@@ -71,6 +71,24 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
     }).format(amount);
   };
 
+  const getApprovalsDisplay = (request: RequestForm) => {
+    if (!request.approvals || request.approvals.length === 0) {
+      return '0';
+    }
+    const total = request.approvals.length;
+    const approved = request.approvals.filter((a) => a.status === 'approved').length;
+    const rejected = request.approvals.filter((a) => a.status === 'rejected').length;
+    const pending = request.approvals.filter((a) => a.status === 'pending').length;
+    
+    if (rejected > 0) {
+      return `${approved}/${total} (Rejected)`;
+    }
+    if (pending > 0) {
+      return `${approved}/${total} (Pending)`;
+    }
+    return `${approved}/${total}`;
+  };
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
@@ -78,11 +96,10 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
           <TableRow className="bg-gray-50">
             <TableHead>Name</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Requester</TableHead>
-            <TableHead>Department</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Amount</TableHead>
+            <TableHead>Approvals</TableHead>
             <TableHead>Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -90,7 +107,7 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
         <TableBody>
           {requests.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-600">
+              <TableCell colSpan={8} className="text-center py-8 text-gray-600">
                 No requests found
               </TableCell>
             </TableRow>
@@ -100,12 +117,6 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
                 <TableCell className="font-medium">{request.name}</TableCell>
                 <TableCell className="capitalize">
                   {request.type?.replace('_', ' ')}
-                </TableCell>
-                <TableCell>
-                  {request.requestedByUser?.fullName || 'N/A'}
-                </TableCell>
-                <TableCell>
-                  {request.department?.name || 'N/A'}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={getStatusColor(request.status)}>
@@ -119,6 +130,9 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
                 </TableCell>
                 <TableCell>
                   {formatCurrency(request.amount, request.currency)}
+                </TableCell>
+                <TableCell>
+                  {getApprovalsDisplay(request)}
                 </TableCell>
                 <TableCell>{formatDate(request.requestDate)}</TableCell>
                 <TableCell className="text-right">
@@ -160,5 +174,6 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
     </div>
   );
 }
+
 
 

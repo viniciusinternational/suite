@@ -1,0 +1,62 @@
+/* Lexical Editor Styles */
+.lexical-editor-wrapper .lexical-paragraph {
+  margin: 0.5em 0;
+}
+
+.lexical-editor-wrapper .lexical-heading-h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.lexical-editor-wrapper .lexical-heading-h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.lexical-editor-wrapper .lexical-heading-h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.lexical-editor-wrapper .lexical-text-bold {
+  font-weight: bold;
+}
+
+.lexical-editor-wrapper .lexical-text-italic {
+  font-style: italic;
+}
+
+.lexical-editor-wrapper .lexical-text-underline {
+  text-decoration: underline;
+}
+
+.lexical-editor-wrapper .lexical-text-strikethrough {
+  text-decoration: line-through;
+}
+
+.lexical-editor-wrapper .lexical-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.lexical-editor-wrapper .lexical-quote {
+  border-left: 4px solid #ccc;
+  padding-left: 1em;
+  margin: 1em 0;
+  font-style: italic;
+}
+
+.lexical-editor-wrapper .lexical-list-ol {
+  list-style-type: decimal;
+  padding-left: 2em;
+}
+
+.lexical-editor-wrapper .lexical-list-ul {
+  list-style-type: disc;
+  padding-left: 2em;
+}
+

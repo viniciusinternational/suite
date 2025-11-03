@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema
 const createTaskSchema = z.object({
@@ -207,6 +208,33 @@ export async function POST(
         },
       },
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      // Check if task has assignee
+      const actionType = validatedData.assigneeId ? 'TASK_ASSIGNED' : 'CREATE';
+      const description = validatedData.assigneeId
+        ? `Created and assigned task "${task.name}" to ${task.assignee?.fullName || 'assignee'}`
+        : `Created task "${task.name}" for project "${project.name}"`;
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType,
+        entityType: 'Task',
+        entityId: task.id,
+        description,
+        previousData: null,
+        newData: task as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (create task):', e);
+    }
 
     return NextResponse.json({
       ok: true,

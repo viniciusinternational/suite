@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 
 // Validation schema for updates
 const updateDepartmentSchema = z.object({
@@ -172,6 +173,27 @@ export async function PUT(
       },
     })
 
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DEPARTMENT_UPDATED',
+        entityType: 'Department',
+        entityId: id,
+        description: `Updated department "${department.name}"`,
+        previousData: existingDepartment as any,
+        newData: department as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      })
+    } catch (e) {
+      console.error('Audit log failed (update department):', e)
+    }
+
     return NextResponse.json({
       ok: true,
       data: department,
@@ -239,6 +261,27 @@ export async function DELETE(
     await prisma.department.delete({
       where: { id },
     })
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DELETE',
+        entityType: 'Department',
+        entityId: id,
+        description: `Deleted department "${existingDepartment.name}"`,
+        previousData: existingDepartment as any,
+        newData: null,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      })
+    } catch (e) {
+      console.error('Audit log failed (delete department):', e)
+    }
 
     return NextResponse.json({
       ok: true,

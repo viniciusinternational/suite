@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema for user creation
 const createUserSchema = z.object({
@@ -199,6 +200,27 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: userData,
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'CREATE',
+        entityType: 'User',
+        entityId: user.id,
+        description: `Created user "${user.fullName}" with role ${user.role}`,
+        previousData: null,
+        newData: user as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (create user):', e);
+    }
 
     // Convert DateTime fields to ISO strings
     const formattedUser = {

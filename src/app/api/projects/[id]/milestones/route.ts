@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema
 const createMilestoneSchema = z.object({
@@ -121,6 +122,27 @@ export async function POST(
         },
       },
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'CREATE',
+        entityType: 'Milestone',
+        entityId: milestone.id,
+        description: `Created milestone "${milestone.name}" for project "${project.name}"`,
+        previousData: null,
+        newData: milestone as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (create milestone):', e);
+    }
 
     return NextResponse.json({
       ok: true,

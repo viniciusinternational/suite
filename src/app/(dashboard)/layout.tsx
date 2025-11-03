@@ -20,7 +20,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isChecking, user } = useAuthGuard();
   const { logout } = useAuthStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Log logout event before clearing auth state (best-effort)
+    if (user) {
+      try {
+        await fetch('/api/audit-logs/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user.id,
+            'x-user-fullname': user.fullName,
+            'x-user-email': user.email,
+            'x-user-role': user.role,
+            'x-user-department-id': user.departmentId || '',
+          },
+          body: JSON.stringify({
+            action: 'USER_LOGOUT',
+            userId: user.id,
+            userSnapshot: {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              role: user.role,
+              departmentId: user.departmentId,
+            },
+            ipAddress: undefined, // Will be captured server-side
+            userAgent: navigator.userAgent,
+          }),
+        }).catch((e) => {
+          console.warn('Failed to log logout event:', e);
+        });
+      } catch (e) {
+        console.warn('Failed to log logout event:', e);
+      }
+    }
+    
     logout();
     router.push('/auth/login');
   };

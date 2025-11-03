@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema for updates
 const updateProjectSchema = z.object({
@@ -202,6 +203,34 @@ export async function PUT(
       },
     });
 
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      // Check if budget was updated
+      const budgetUpdated = validatedData.budget !== undefined && validatedData.budget !== existingProject.budget;
+      const actionType = budgetUpdated ? 'BUDGET_UPDATED' : 'UPDATE';
+      const description = budgetUpdated
+        ? `Updated budget for project "${updatedProject.name}" from ${existingProject.budget} to ${updatedProject.budget}`
+        : `Updated project "${updatedProject.name}"`;
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType,
+        entityType: 'Project',
+        entityId: id,
+        description,
+        previousData: existingProject as any,
+        newData: updatedProject as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (update project):', e);
+    }
+
     return NextResponse.json({
       ok: true,
       data: updatedProject,
@@ -256,6 +285,27 @@ export async function DELETE(
     await prisma.project.delete({
       where: { id },
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DELETE',
+        entityType: 'Project',
+        entityId: id,
+        description: `Deleted project "${existingProject.name}"`,
+        previousData: existingProject as any,
+        newData: null,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (delete project):', e);
+    }
 
     return NextResponse.json({
       ok: true,

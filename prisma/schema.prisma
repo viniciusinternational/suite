@@ -27,6 +27,7 @@ model Department {
   head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
   events      Event[]         @relation("EventDepartments")
   requestForms RequestForm[]  @relation("RequestFormDepartment")
+  memos       Memo[]          @relation("MemoDepartments")
 
   @@map("departments")
 }
@@ -81,6 +82,10 @@ model User {
   requestsCreated  RequestForm[]       @relation("RequestFormRequester")
   requestApprovals RequestApproval[]    @relation("RequestApprovalUser")
   requestComments  RequestComment[]     @relation("RequestCommentUser")
+  createdMemos     Memo[]              @relation("MemoCreatedBy")
+  memos            Memo[]              @relation("MemoUsers")
+  teams            Team[]              @relation("TeamUsers")
+  teamsLed          Team[]              @relation("TeamLeader")
 
   @@map("users")
 }
@@ -153,6 +158,7 @@ model Task {
   project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   milestone      Milestone? @relation(fields: [milestoneId], references: [id])
   assignee       User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  teams          Team[]   @relation("TeamTasks")
 
   @@map("tasks")
 }
@@ -222,6 +228,28 @@ model Event {
   @@map("events")
 }
 
+model Memo {
+  id            String    @id @default(cuid())
+  title         String
+  content       String
+  priority      String    @default("medium") // low, medium, high, urgent
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+
+  // Relations
+  createdBy     User?       @relation("MemoCreatedBy", fields: [createdById], references: [id])
+  users         User[]      @relation("MemoUsers")
+  departments   Department[] @relation("MemoDepartments")
+
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("memos")
+}
+
 model RequestForm {
   id          String   @id @default(cuid())
   name        String
@@ -289,4 +317,21 @@ model RequestComment {
   @@index([requestFormId])
   @@index([userId])
   @@map("request_comments")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  title       String
+  purpose     String?
+  leaderId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  users       User[]   @relation("TeamUsers")
+  tasks       Task[]   @relation("TeamTasks")
+
+  @@map("teams")
 }

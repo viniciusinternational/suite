@@ -4,6 +4,41 @@ import type { AuditActionType, AuditEntityType } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
+    // Optional permission check - client-side guard already handles this
+    // This provides defense-in-depth
+    const headers = request.headers;
+    const userIdFromHeader = headers.get('x-user-id');
+    
+    if (userIdFromHeader) {
+      const user = await prisma.user.findUnique({
+        where: { id: userIdFromHeader },
+        select: { permissions: true, isActive: true },
+      });
+
+      // Check if user exists and is active
+      if (!user || !user.isActive) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: 'Unauthorized',
+          },
+          { status: 401 }
+        );
+      }
+
+      // Check if user has view_audit_logs permission
+      const permissions = user.permissions as Record<string, boolean> | null;
+      if (permissions && !permissions.view_audit_logs) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: 'Forbidden: Missing view_audit_logs permission',
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     
     // Extract query parameters

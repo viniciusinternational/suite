@@ -14,10 +14,15 @@ interface UseAuthGuardReturn {
 export function useAuthGuard(requiredPermissions?: PermissionKey[]): UseAuthGuardReturn {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    // Wait for hydration to complete before checking authentication
+    if (!hasHydrated) {
+      return;
+    }
+
     // Check authentication
     if (!isAuthenticated || !user) {
       router.push('/auth/login');
@@ -39,7 +44,7 @@ export function useAuthGuard(requiredPermissions?: PermissionKey[]): UseAuthGuar
 
     // User is authenticated and authorized
     setIsChecking(false);
-  }, [isAuthenticated, user, router, requiredPermissions, pathname]);
+  }, [isAuthenticated, user, hasHydrated, router, requiredPermissions, pathname]);
 
   return { isChecking, user };
 }

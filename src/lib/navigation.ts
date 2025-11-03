@@ -131,6 +131,14 @@ export const navigationConfig: NavigationItem[] = [
     href: '/performance',
     permissions: ['view_performance'],
   },
+  // Memos Module
+  {
+    id: 'memos',
+    label: 'Memos',
+    icon: 'Megaphone',
+    href: '/memos',
+    permissions: ['view_memos'],
+  },
 ];
 
 /**

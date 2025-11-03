@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 
 // Validation schema for creating units
 const createUnitSchema = z.object({
@@ -81,6 +82,27 @@ export async function POST(
         },
       },
     })
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'UNIT_CREATED',
+        entityType: 'DepartmentUnit',
+        entityId: unit.id,
+        description: `Created unit "${unit.name}" for department "${department.name}"`,
+        previousData: null,
+        newData: unit as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      })
+    } catch (e) {
+      console.error('Audit log failed (create unit):', e)
+    }
 
     return NextResponse.json({
       ok: true,

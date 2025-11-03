@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Helpers to gracefully handle typical UI inputs (empty strings, string numbers, nulls)
 const optionalNonEmptyString = z
@@ -177,6 +178,37 @@ export async function PUT(
       data: validatedData,
     });
 
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      // Check if permissions were changed
+      const permissionsChanged = 
+        validatedData.permissions !== undefined && 
+        JSON.stringify(existingUser.permissions) !== JSON.stringify(validatedData.permissions);
+      
+      const actionType = permissionsChanged ? 'PERMISSION_CHANGED' : 'UPDATE';
+      const description = permissionsChanged
+        ? `Changed permissions for user "${updatedUser.fullName}"`
+        : `Updated user "${updatedUser.fullName}"`;
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType,
+        entityType: 'User',
+        entityId: id,
+        description,
+        previousData: existingUser as any,
+        newData: updatedUser as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (update user):', e);
+    }
+
     // Convert DateTime fields to ISO strings
     const formattedUser = {
       ...updatedUser,
@@ -239,6 +271,27 @@ export async function DELETE(
       where: { id },
       data: { isActive: false },
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DELETE',
+        entityType: 'User',
+        entityId: id,
+        description: `Deactivated user "${existingUser.fullName}"`,
+        previousData: existingUser as any,
+        newData: deletedUser as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (delete user):', e);
+    }
 
     // Convert DateTime fields to ISO strings
     const formattedUser = {

@@ -62,7 +62,9 @@ export type PermissionKey =
   | 'edit_settings'
   // Team Module
   | 'view_team'
-  | 'edit_team'
+  | 'add_teams'
+  | 'edit_teams'
+  | 'delete_teams'
   // Timesheets Module
   | 'view_timesheets'
   | 'add_timesheets'
@@ -72,7 +74,12 @@ export type PermissionKey =
   | 'view_performance'
   | 'add_performance'
   | 'edit_performance'
-  | 'delete_performance';
+  | 'delete_performance'
+  // Memos Module
+  | 'view_memos'
+  | 'add_memos'
+  | 'edit_memos'
+  | 'delete_memos';
 
 // Permission record type
 export type UserPermissions = Record<PermissionKey, boolean>;
@@ -392,6 +399,8 @@ export type AuditEntityType =
   | 'Vendor'
   | 'Client'
   | 'AuditLog'
+  | 'Memo'
+  | 'Team'
   | 'System';
 
 export interface AuditLog {
@@ -432,6 +441,35 @@ export interface Event {
   createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Memos
+export interface Memo {
+  id: string;
+  title: string;
+  content: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  isActive: boolean;
+  expiresAt?: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Teams
+export interface Team {
+  id: string;
+  title: string;
+  purpose?: string;
+  leaderId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  leader?: Pick<User, 'id' | 'fullName' | 'email' | 'role' | 'avatar'>;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role' | 'avatar' | 'position'>[];
+  tasks?: Pick<Task, 'id' | 'name' | 'status' | 'priority' | 'dueDate' | 'projectId'>[];
 }
 
 // Navigation Types

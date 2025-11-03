@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema
 const createProjectSchema = z.object({
@@ -248,6 +249,27 @@ export async function POST(request: NextRequest) {
         },
       });
       approvals.push(ceoApproval);
+    }
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'CREATE',
+        entityType: 'Project',
+        entityId: project.id,
+        description: `Created project "${project.name}" with ${approvals.length} approvals`,
+        previousData: null,
+        newData: project as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (create project):', e);
     }
 
     return NextResponse.json({

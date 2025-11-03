@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '@/lib/axios';
-import type { RequestForm, RequestComment } from '@/types';
+import type { RequestForm, RequestComment, RequestApproval } from '@/types';
 
 interface RequestFilters {
   status?: string;
@@ -173,6 +173,20 @@ export function useApproveRequest(requestId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['request', requestId] });
       queryClient.invalidateQueries({ queryKey: ['requests'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+    },
+  });
+}
+
+// GET /api/requests/approvals - Get pending approvals for current user
+export function usePendingApprovals() {
+  return useQuery({
+    queryKey: ['pending-approvals'],
+    queryFn: async () => {
+      const response = await axios.get('/requests/approvals');
+      return response.data.data as (RequestApproval & {
+        requestForm: RequestForm;
+      })[];
     },
   });
 }

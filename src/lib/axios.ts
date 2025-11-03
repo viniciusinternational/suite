@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth-store';
 
 const axiosClient = axios.create({
   baseURL: '/api',
@@ -10,6 +11,27 @@ const axiosClient = axios.create({
 // Request interceptor
 axiosClient.interceptors.request.use(
   (config) => {
+    // Add user headers for audit logging (client-side only)
+    if (typeof window !== 'undefined') {
+      const { user } = useAuthStore.getState();
+      
+      if (user) {
+        // Ensure headers object exists
+        if (!config.headers) {
+          config.headers = {};
+        }
+        
+        // Add user information headers for audit logging
+        config.headers['x-user-id'] = user.id;
+        config.headers['x-user-fullname'] = user.fullName;
+        config.headers['x-user-email'] = user.email;
+        config.headers['x-user-role'] = user.role;
+        if (user.departmentId) {
+          config.headers['x-user-department-id'] = user.departmentId;
+        }
+      }
+    }
+    
     return config;
   },
   (error) => {

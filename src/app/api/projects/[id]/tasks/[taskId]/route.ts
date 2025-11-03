@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 
 // Validation schema for updates
 const updateTaskSchema = z.object({
@@ -98,6 +99,41 @@ export async function PUT(
       },
     });
 
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      // Check if task was assigned (assignee changed)
+      const assigned = validatedData.assigneeId && validatedData.assigneeId !== existingTask.assigneeId;
+      const completed = validatedData.status === 'completed' && existingTask.status !== 'completed';
+      
+      let actionType = 'UPDATE';
+      if (assigned) actionType = 'TASK_ASSIGNED';
+      else if (completed) actionType = 'TASK_COMPLETED';
+      
+      const description = assigned
+        ? `Assigned task "${updatedTask.name}" to ${updatedTask.assignee?.fullName || 'assignee'}`
+        : completed
+        ? `Completed task "${updatedTask.name}"`
+        : `Updated task "${updatedTask.name}"`;
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType,
+        entityType: 'Task',
+        entityId: taskId,
+        description,
+        previousData: existingTask as any,
+        newData: updatedTask as any,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (update task):', e);
+    }
+
     return NextResponse.json({
       ok: true,
       data: updatedTask,
@@ -152,6 +188,29 @@ export async function DELETE(
     await prisma.task.delete({
       where: { id: taskId },
     });
+
+    // Audit log (best-effort)
+    try {
+      const headers = request.headers;
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
+      
+      const project = await prisma.project.findUnique({ where: { id } });
+      
+      await createAuditLog({
+        userId: userId || 'system',
+        userSnapshot,
+        actionType: 'DELETE',
+        entityType: 'Task',
+        entityId: taskId,
+        description: `Deleted task "${existingTask.name}" from project "${project?.name || id}"`,
+        previousData: existingTask as any,
+        newData: null,
+        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
+        userAgent: headers.get('user-agent') ?? undefined,
+      });
+    } catch (e) {
+      console.error('Audit log failed (delete task):', e);
+    }
 
     return NextResponse.json({
       ok: true,

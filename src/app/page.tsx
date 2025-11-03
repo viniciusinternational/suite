@@ -6,9 +6,14 @@ import { useAuthStore } from '@/store';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    // Wait for hydration to complete before checking authentication
+    if (!hasHydrated) {
+      return;
+    }
+
     if (!isAuthenticated || !user) {
       // Redirect to login if not authenticated
       router.push('/auth/login');
@@ -17,9 +22,9 @@ export default function Home() {
 
     // Redirect to dashboard
     router.push('/dashboard');
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, hasHydrated, router]);
 
-  // Show loading state while redirecting
+  // Show loading state while redirecting or hydrating
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
