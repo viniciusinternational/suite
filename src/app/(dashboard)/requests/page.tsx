@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -12,13 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,25 +25,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { RequestTable } from '@/components/request/request-table';
-import { RequestForm } from '@/components/request/request-form';
-import { RequestDetail } from '@/components/request/request-detail';
-import { useRequests, useDeleteRequest, useRequest } from '@/hooks/use-requests';
+import { useRequests, useDeleteRequest } from '@/hooks/use-requests';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
-import { Plus, Search, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 
 export default function RequestsPage() {
   const { user } = useAuthGuard(['view_requests']);
+  const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
 
   const deleteRequest = useDeleteRequest();
@@ -62,21 +52,16 @@ export default function RequestsPage() {
   };
 
   // Fetch requests - API will filter based on user role
-  const { data: requests = [], isLoading } = useRequests(filters);
+  const { data: requests = [], isLoading, isFetching } = useRequests(filters);
 
   // Fetch departments for filter
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [], isLoading: isLoadingDepartments } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const response = await axios.get('/departments');
       return response.data.data;
     },
   });
-
-  // Fetch selected request details
-  const { data: requestDetails } = useRequest(
-    selectedRequest?.id || null
-  );
 
   // Calculate statistics
   const stats = {
@@ -87,13 +72,11 @@ export default function RequestsPage() {
   };
 
   const handleView = (request: any) => {
-    setSelectedRequest(request);
-    setViewDialogOpen(true);
+    router.push(`/requests/${request.id}`);
   };
 
   const handleEdit = (request: any) => {
-    setSelectedRequest(request);
-    setEditDialogOpen(true);
+    router.push(`/requests/${request.id}/edit`);
   };
 
   const handleDelete = (id: string) => {
@@ -112,41 +95,18 @@ export default function RequestsPage() {
     }
   };
 
-  const handleCreateSuccess = () => {
-    setCreateDialogOpen(false);
-  };
-
-  const handleEditSuccess = () => {
-    setEditDialogOpen(false);
-    setSelectedRequest(null);
-    setViewDialogOpen(true);
-  };
-
-  const handleApprovalChange = () => {
-    // Refresh data when approval changes
-    if (selectedRequest?.id && requestDetails) {
-      setSelectedRequest(requestDetails);
-    }
-  };
-
-  if (isLoading && !requests.length) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading requests...</p>
-      </div>
-    );
-  }
+  const isMutating = deleteRequest.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Requests</h1>
-          <p className="text-gray-600 mt-1">Manage and track request forms</p>
+          <h1 className="text-3xl font-bold text-foreground">Requests</h1>
+          <p className="text-muted-foreground mt-1">Manage and track request forms</p>
         </div>
         {user?.permissions?.add_requests && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => router.push('/requests/new')}>
             <Plus className="h-4 w-4 mr-2" />
             Create Request
           </Button>
@@ -154,44 +114,86 @@ export default function RequestsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-            <FileText className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pending}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.approved}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.rejected}</div>
-          </CardContent>
-        </Card>
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Requests
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.total}
+                  </p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Pending
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {stats.pending}
+                  </p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Approved
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats.approved}
+                  </p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Rejected
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {stats.rejected}
+                  </p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters and Requests Table */}
       <Card>
@@ -205,19 +207,21 @@ export default function RequestsPage() {
           <div className="space-y-4">
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search requests..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search requests..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  disabled={isMutating}
+                />
+                {isFetching && !isLoading && (
+                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+                )}
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+              <Select value={statusFilter} onValueChange={setStatusFilter} disabled={isMutating}>
+                <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -228,8 +232,8 @@ export default function RequestsPage() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[180px]">
+              <Select value={typeFilter} onValueChange={setTypeFilter} disabled={isMutating}>
+                <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,20 +245,41 @@ export default function RequestsPage() {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Department" />
+              <Select 
+                value={departmentFilter} 
+                onValueChange={setDepartmentFilter} 
+                disabled={isMutating || isLoadingDepartments}
+              >
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder={isLoadingDepartments ? "Loading..." : "Department"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept: any) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
+                  {isLoadingDepartments ? (
+                    <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading departments...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((dept: any) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Loading state for mutations */}
+            {isMutating && (
+              <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Processing...</span>
+              </div>
+            )}
 
             {/* Request Table */}
             <RequestTable
@@ -262,57 +287,11 @@ export default function RequestsPage() {
               onView={handleView}
               onEdit={user?.permissions?.edit_requests ? handleEdit : undefined}
               onDelete={user?.permissions?.delete_requests ? handleDelete : undefined}
+              isLoading={isLoading}
             />
           </div>
         </CardContent>
       </Card>
-
-      {/* Create Request Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Request</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to create a new request
-            </DialogDescription>
-          </DialogHeader>
-          <RequestForm onSuccess={handleCreateSuccess} />
-        </DialogContent>
-      </Dialog>
-
-      {/* View Request Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-          </DialogHeader>
-          {requestDetails && (
-            <RequestDetail
-              request={requestDetails}
-              onEdit={user?.permissions?.edit_requests ? () => {
-                setViewDialogOpen(false);
-                setEditDialogOpen(true);
-              } : undefined}
-              onApprovalChange={handleApprovalChange}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Request Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Request</DialogTitle>
-            <DialogDescription>
-              Update the request details below
-            </DialogDescription>
-          </DialogHeader>
-          {selectedRequest && (
-            <RequestForm request={selectedRequest} onSuccess={handleEditSuccess} />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

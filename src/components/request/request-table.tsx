@@ -3,6 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { RequestForm } from '@/types';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 
@@ -11,9 +12,10 @@ interface RequestTableProps {
   onView?: (request: RequestForm) => void;
   onEdit?: (request: RequestForm) => void;
   onDelete?: (id: string) => void;
+  isLoading?: boolean;
 }
 
-export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTableProps) {
+export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = false }: RequestTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -89,6 +91,47 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
     return `${approved}/${total}`;
   };
 
+  if (isLoading) {
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Approvals</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
@@ -142,6 +185,7 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
                         variant="ghost"
                         size="sm"
                         onClick={() => onView(request)}
+                        className="h-8 w-8 p-0"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -151,6 +195,7 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit(request)}
+                        className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -160,8 +205,9 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
                         variant="ghost"
                         size="sm"
                         onClick={() => onDelete(request.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
@@ -174,6 +220,3 @@ export function RequestTable({ requests, onView, onEdit, onDelete }: RequestTabl
     </div>
   );
 }
-
-
-
