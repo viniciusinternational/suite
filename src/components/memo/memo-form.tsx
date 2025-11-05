@@ -13,6 +13,7 @@ import { useCreateMemo, useUpdateMemo } from '@/hooks/use-memos'
 import { LexicalWrapper } from './lexical-wrapper'
 import axios from '@/lib/axios'
 import type { Department, Memo, User } from '@/types'
+import { X, Plus } from 'lucide-react'
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -137,7 +138,7 @@ export function MemoForm({ memo, onSuccess }: Props) {
               value={form.watch('priority')} 
               onValueChange={(v) => form.setValue('priority', v as any)}
             >
-              <SelectTrigger className="mt-2">
+              <SelectTrigger className="w-full mt-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -192,13 +193,25 @@ export function MemoForm({ memo, onSuccess }: Props) {
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t flex justify-end">
+      <div className="p-6 border-t flex justify-end gap-3">
+        <Button 
+          type="button"
+          variant="outline"
+          onClick={() => onSuccess?.()}
+          size="lg"
+          className="gap-2"
+        >
+          <X className="h-4 w-4" />
+          Cancel
+        </Button>
         <Button 
           type="submit" 
           disabled={createMutation.isPending || updateMutation.isPending}
           size="lg"
+          className="gap-2"
         >
-          {memo?.id ? 'Save Changes' : 'Create Memo'}
+          <Plus className="h-4 w-4" />
+          {memo?.id ? 'Save Changes' : 'Add'}
         </Button>
       </div>
     </form>

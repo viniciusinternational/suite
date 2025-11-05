@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { useCreateEvent, useUpdateEvent } from '@/hooks/use-events'
 import axios from '@/lib/axios'
 import type { Department, DepartmentUnit, Event, User } from '@/types'
+import { X, Plus, Loader2 } from 'lucide-react'
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -36,6 +37,8 @@ export function EventForm({ event, onSuccess }: Props) {
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [units, setUnits] = useState<DepartmentUnit[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(true)
 
   const createMutation = useCreateEvent()
   const updateMutation = useUpdateEvent(event?.id || '')
@@ -58,14 +61,23 @@ export function EventForm({ event, onSuccess }: Props) {
   useEffect(() => {
     // Load users, departments, units
     (async () => {
-      const [usersRes, deptRes] = await Promise.all([
-        axios.get('/users'),
-        axios.get('/departments'),
-      ])
-      setUsers(usersRes.data.data || [])
-      setDepartments(deptRes.data.data || [])
-      const allUnits = (deptRes.data.data || []).flatMap((d: any) => d.units || [])
-      setUnits(allUnits)
+      try {
+        setIsLoadingUsers(true)
+        setIsLoadingDepartments(true)
+        const [usersRes, deptRes] = await Promise.all([
+          axios.get('/users'),
+          axios.get('/departments'),
+        ])
+        setUsers(usersRes.data.data || [])
+        setDepartments(deptRes.data.data || [])
+        const allUnits = (deptRes.data.data || []).flatMap((d: any) => d.units || [])
+        setUnits(allUnits)
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setIsLoadingUsers(false)
+        setIsLoadingDepartments(false)
+      }
     })()
   }, [])
 
@@ -90,108 +102,162 @@ export function EventForm({ event, onSuccess }: Props) {
     onSuccess?.()
   }
 
+  // Prepare options for MultiSelect
+  const userOptions = users.map((u) => ({
+    id: u.id,
+    label: u.fullName,
+    value: u.email || u.id,
+    avatar: u.avatar,
+    description: u.position || u.role,
+  }))
+
+  const departmentOptions = departments.map((d) => ({
+    id: d.id,
+    label: d.name,
+    value: d.code,
+    description: d.sector,
+  }))
+
+  const unitOptions = units.map((u) => ({
+    id: u.id,
+    label: u.name,
+    value: u.id,
+    description: departments.find(d => d.units?.some(unit => unit.id === u.id))?.name || '',
+  }))
+
   return (
-    <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-      <div>
-        <Label>Title</Label>
-        <Input {...form.register('title')} placeholder="Event title" />
-      </div>
-      <div>
-        <Label>Description</Label>
-        <Textarea {...form.register('description')} placeholder="Details about the event" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Start</Label>
-          <Input type="datetime-local" {...form.register('startDateTime')} />
+    <div className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="event-form">
+        {/* Row 1: Title */}
+        <div className="space-y-2">
+          <Label>Title *</Label>
+          <Input {...form.register('title')} placeholder="Event title" />
+          {form.formState.errors.title && (
+            <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
+          )}
         </div>
-        <div>
-          <Label>End</Label>
-          <Input type="datetime-local" {...form.register('endDateTime')} />
-        </div>
-      </div>
-      <div>
-        <Label>Tags (comma separated)</Label>
-        <Input {...form.register('tags')} placeholder="workshop, training" />
-      </div>
-      <div>
-        <Label>Link</Label>
-        <Input {...form.register('link')} placeholder="https://..." />
-      </div>
 
-      {/* Targets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
+        {/* Row 2: Description (full width) */}
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Textarea {...form.register('description')} placeholder="Details about the event" rows={3} />
+        </div>
+
+        {/* Row 3: Start and End Date */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Start *</Label>
+            <Input type="datetime-local" {...form.register('startDateTime')} />
+            {form.formState.errors.startDateTime && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.startDateTime.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>End *</Label>
+            <Input type="datetime-local" {...form.register('endDateTime')} />
+            {form.formState.errors.endDateTime && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.endDateTime.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Row 4: Tags and Link */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Tags (comma separated)</Label>
+            <Input {...form.register('tags')} placeholder="workshop, training" />
+          </div>
+          <div className="space-y-2">
+            <Label>Link</Label>
+            <Input {...form.register('link')} placeholder="https://..." />
+          </div>
+        </div>
+
+        {/* Row 5: Users (full width) */}
+        <div className="space-y-2">
           <Label>Users</Label>
-          <div className="border rounded-md p-2 max-h-40 overflow-y-auto">
-            {users.map(u => (
-              <label key={u.id} className="flex items-center space-x-2 py-1">
-                <input
-                  type="checkbox"
-                  value={u.id}
-                  checked={form.watch('userIds')?.includes(u.id) || false}
-                  onChange={(e) => {
-                    const curr = new Set(form.getValues('userIds') || [])
-                    if (e.target.checked) curr.add(u.id); else curr.delete(u.id)
-                    form.setValue('userIds', Array.from(curr))
-                  }}
-                />
-                <span className="text-sm">{u.fullName}</span>
-              </label>
-            ))}
-          </div>
+          {isLoadingUsers ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading users...</span>
+            </div>
+          ) : (
+            <MultiSelect
+              options={userOptions}
+              selected={form.watch('userIds') || []}
+              onChange={(selected) => form.setValue('userIds', selected)}
+              placeholder="Select users..."
+              searchPlaceholder="Search users..."
+              emptyMessage="No users found"
+              className="w-full"
+            />
+          )}
         </div>
 
-        <div>
+        {/* Row 6: Departments (full width) */}
+        <div className="space-y-2">
           <Label>Departments</Label>
-          <div className="border rounded-md p-2 max-h-40 overflow-y-auto">
-            {departments.map(d => (
-              <label key={d.id} className="flex items-center space-x-2 py-1">
-                <input
-                  type="checkbox"
-                  value={d.id}
-                  checked={form.watch('departmentIds')?.includes(d.id) || false}
-                  onChange={(e) => {
-                    const curr = new Set(form.getValues('departmentIds') || [])
-                    if (e.target.checked) curr.add(d.id); else curr.delete(d.id)
-                    form.setValue('departmentIds', Array.from(curr))
-                  }}
-                />
-                <span className="text-sm">{d.name}</span>
-              </label>
-            ))}
-          </div>
+          {isLoadingDepartments ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading departments...</span>
+            </div>
+          ) : (
+            <MultiSelect
+              options={departmentOptions}
+              selected={form.watch('departmentIds') || []}
+              onChange={(selected) => form.setValue('departmentIds', selected)}
+              placeholder="Select departments..."
+              searchPlaceholder="Search departments..."
+              emptyMessage="No departments found"
+              className="w-full"
+            />
+          )}
         </div>
 
-        <div>
+        {/* Row 7: Units (full width) */}
+        <div className="space-y-2">
           <Label>Units</Label>
-          <div className="border rounded-md p-2 max-h-40 overflow-y-auto">
-            {units.map(u => (
-              <label key={u.id} className="flex items-center space-x-2 py-1">
-                <input
-                  type="checkbox"
-                  value={u.id}
-                  checked={form.watch('unitIds')?.includes(u.id) || false}
-                  onChange={(e) => {
-                    const curr = new Set(form.getValues('unitIds') || [])
-                    if (e.target.checked) curr.add(u.id); else curr.delete(u.id)
-                    form.setValue('unitIds', Array.from(curr))
-                  }}
-                />
-                <span className="text-sm">{u.name}</span>
-              </label>
-            ))}
-          </div>
+          {isLoadingDepartments ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading units...</span>
+            </div>
+          ) : (
+            <MultiSelect
+              options={unitOptions}
+              selected={form.watch('unitIds') || []}
+              onChange={(selected) => form.setValue('unitIds', selected)}
+              placeholder="Select units..."
+              searchPlaceholder="Search units..."
+              emptyMessage="No units found"
+              className="w-full"
+            />
+          )}
         </div>
-      </div>
+      </form>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-          {event?.id ? 'Save Changes' : 'Create Event'}
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onSuccess?.()}
+          className="gap-2"
+        >
+          <X className="h-4 w-4" />
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          form="event-form"
+          disabled={createMutation.isPending || updateMutation.isPending}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          {event?.id ? 'Save Changes' : 'Add'}
         </Button>
       </div>
-    </form>
+    </div>
   )
 }
-
-

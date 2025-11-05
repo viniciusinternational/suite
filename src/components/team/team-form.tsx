@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { useCreateTeam, useUpdateTeam } from '@/hooks/use-teams'
 import axios from '@/lib/axios'
 import type { Team, User, Task } from '@/types'
 import { useQuery } from '@tanstack/react-query'
+import { X, Plus } from 'lucide-react'
 
 const schema = z.object({
   title: z.string().min(1, 'Team title is required'),
@@ -100,133 +102,152 @@ export function TeamForm({ team, onSuccess }: Props) {
   }
 
   return (
-    <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-      <div>
-        <Label>Team Title *</Label>
-        <Input {...form.register('title')} placeholder="Enter team title" />
-        {form.formState.errors.title && (
-          <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
-        )}
-      </div>
+    <div className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="team-form">
+        {/* Row 1: Title */}
+        <div className="space-y-2">
+          <Label>Team Title *</Label>
+          <Input {...form.register('title')} placeholder="Enter team title" />
+          {form.formState.errors.title && (
+            <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
+          )}
+        </div>
 
-      <div>
-        <Label>Purpose</Label>
-        <Textarea
-          {...form.register('purpose')}
-          placeholder="Describe the team's purpose"
-          rows={3}
-        />
-      </div>
+        {/* Row 2: Purpose (full width) */}
+        <div className="space-y-2">
+          <Label>Purpose</Label>
+          <Textarea
+            {...form.register('purpose')}
+            placeholder="Describe the team's purpose"
+            rows={3}
+          />
+        </div>
 
-      <div>
-        <Label>Team Leader</Label>
-        <Select
-          value={form.watch('leaderId') || 'none'}
-          onValueChange={(value) => form.setValue('leaderId', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select team leader" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No leader</SelectItem>
+        {/* Row 3: Team Leader (full width) */}
+        <div className="space-y-2">
+          <Label>Team Leader</Label>
+          <Select
+            value={form.watch('leaderId') || 'none'}
+            onValueChange={(value) => form.setValue('leaderId', value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select team leader" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No leader</SelectItem>
+              {users
+                .filter((u) => u.isActive)
+                .map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName} ({u.role})
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Row 4: Team Members (full width) */}
+        <div className="space-y-2">
+          <Label>Team Members</Label>
+          <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
             {users
               .filter((u) => u.isActive)
               .map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.fullName} ({u.role})
-                </SelectItem>
+                <label key={u.id} className="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-2">
+                  <input
+                    type="checkbox"
+                    checked={form.watch('userIds')?.includes(u.id) || false}
+                    onChange={(e) => {
+                      const curr = new Set(form.getValues('userIds') || [])
+                      if (e.target.checked) {
+                        curr.add(u.id)
+                      } else {
+                        curr.delete(u.id)
+                      }
+                      form.setValue('userIds', Array.from(curr))
+                    }}
+                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    {u.avatar && (
+                      <img src={u.avatar} alt={u.fullName} className="w-6 h-6 rounded-full" />
+                    )}
+                    <span className="text-sm">{u.fullName}</span>
+                    <span className="text-xs text-gray-500">({u.position})</span>
+                  </div>
+                </label>
               ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label>Team Members</Label>
-        <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
-          {users
-            .filter((u) => u.isActive)
-            .map((u) => (
-              <label key={u.id} className="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-2">
-                <input
-                  type="checkbox"
-                  checked={form.watch('userIds')?.includes(u.id) || false}
-                  onChange={(e) => {
-                    const curr = new Set(form.getValues('userIds') || [])
-                    if (e.target.checked) {
-                      curr.add(u.id)
-                    } else {
-                      curr.delete(u.id)
-                    }
-                    form.setValue('userIds', Array.from(curr))
-                  }}
-                />
-                <div className="flex items-center gap-2 flex-1">
-                  {u.avatar && (
-                    <img src={u.avatar} alt={u.fullName} className="w-6 h-6 rounded-full" />
-                  )}
-                  <span className="text-sm">{u.fullName}</span>
-                  <span className="text-xs text-gray-500">({u.position})</span>
-                </div>
-              </label>
-            ))}
+          </div>
         </div>
-      </div>
 
-      <div>
-        <Label>Tasks (Optional)</Label>
-        <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
-          {tasks.length === 0 ? (
-            <p className="text-sm text-gray-500 py-2">No tasks available</p>
-          ) : (
-            tasks.map((task) => (
-              <label key={task.id} className="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-2">
-                <input
-                  type="checkbox"
-                  checked={form.watch('taskIds')?.includes(task.id) || false}
-                  onChange={(e) => {
-                    const curr = new Set(form.getValues('taskIds') || [])
-                    if (e.target.checked) {
-                      curr.add(task.id)
-                    } else {
-                      curr.delete(task.id)
-                    }
-                    form.setValue('taskIds', Array.from(curr))
-                  }}
-                />
-                <span className="text-sm">{task.name}</span>
-                <span className="text-xs text-gray-500">({task.status})</span>
-              </label>
-            ))
-          )}
+        {/* Row 5: Tasks (full width) */}
+        <div className="space-y-2">
+          <Label>Tasks (Optional)</Label>
+          <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
+            {tasks.length === 0 ? (
+              <p className="text-sm text-gray-500 py-2">No tasks available</p>
+            ) : (
+              tasks.map((task) => (
+                <label key={task.id} className="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-50 rounded px-2">
+                  <input
+                    type="checkbox"
+                    checked={form.watch('taskIds')?.includes(task.id) || false}
+                    onChange={(e) => {
+                      const curr = new Set(form.getValues('taskIds') || [])
+                      if (e.target.checked) {
+                        curr.add(task.id)
+                      } else {
+                        curr.delete(task.id)
+                      }
+                      form.setValue('taskIds', Array.from(curr))
+                    }}
+                  />
+                  <span className="text-sm">{task.name}</span>
+                  <span className="text-xs text-gray-500">({task.status})</span>
+                </label>
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="isActive"
-          checked={form.watch('isActive')}
-          onChange={(e) => form.setValue('isActive', e.target.checked)}
-          className="rounded"
-        />
-        <Label htmlFor="isActive" className="cursor-pointer">
-          Active
-        </Label>
-      </div>
+        {/* Row 6: Status (full width) */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Label htmlFor="isActive" className="text-sm font-medium">
+              Team Status
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Active teams are visible and operational
+            </p>
+          </div>
+          <Switch
+            id="isActive"
+            checked={form.watch('isActive')}
+            onCheckedChange={(checked) => form.setValue('isActive', checked)}
+          />
+        </div>
+      </form>
 
-      <div className="flex justify-end gap-2">
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
         <Button
           type="button"
           variant="outline"
           onClick={() => onSuccess?.()}
+          className="gap-2"
         >
+          <X className="h-4 w-4" />
           Cancel
         </Button>
-        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-          {team?.id ? 'Save Changes' : 'Create Team'}
+        <Button 
+          type="submit" 
+          form="team-form"
+          disabled={createMutation.isPending || updateMutation.isPending}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          {team?.id ? 'Save Changes' : 'Add'}
         </Button>
       </div>
-    </form>
+    </div>
   )
 }
-

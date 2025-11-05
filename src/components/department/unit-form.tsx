@@ -11,9 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { AlertCircle, FolderTree, User, Building2 } from "lucide-react";
+import { AlertCircle, Loader2, X, Plus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Department } from "@/types";
 
@@ -38,6 +36,8 @@ interface UnitFormProps {
   availableUsers: User[];
   onCancel: () => void;
   onSubmit: () => void;
+  isLoadingDepartments?: boolean;
+  isLoadingUsers?: boolean;
 }
 
 interface FormErrors {
@@ -52,6 +52,8 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   availableUsers,
   onCancel,
   onSubmit,
+  isLoadingDepartments = false,
+  isLoadingUsers = false,
 }) => {
   const [errors, setErrors] = React.useState<FormErrors>({});
 
@@ -90,16 +92,11 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const activeDepartments = departments.filter((d) => d.isActive);
 
   return (
-    <div className="space-y-4">
-      {/* Basic Information Section */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FolderTree className="h-5 w-5" />
-            Unit Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="space-y-6">
+      {/* Form Fields */}
+      <div className="space-y-4">
+        {/* Row 1: Unit Name and Department */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="unitName" className="text-sm font-medium">
               Unit Name *
@@ -129,21 +126,29 @@ export const UnitForm: React.FC<UnitFormProps> = ({
             <Select
               value={unitFormData.departmentId}
               onValueChange={(value: string) => handleInputChange('departmentId', value)}
+              disabled={isLoadingDepartments}
             >
-              <SelectTrigger className={errors.departmentId ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select department" />
+              <SelectTrigger className={errors.departmentId ? "border-destructive w-full" : "w-full"} disabled={isLoadingDepartments}>
+                <SelectValue placeholder={isLoadingDepartments ? "Loading departments..." : "Select department"} />
               </SelectTrigger>
               <SelectContent>
-                {activeDepartments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{dept.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {dept.code} • {dept.sector.replace(/\b\w/g, l => l.toUpperCase())}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
+                {isLoadingDepartments ? (
+                  <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading departments...</span>
+                  </div>
+                ) : (
+                  activeDepartments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{dept.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {dept.code} • {dept.sector.replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {errors.departmentId && (
@@ -154,7 +159,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                 </AlertDescription>
               </Alert>
             )}
-            {activeDepartments.length === 0 && (
+            {activeDepartments.length === 0 && !isLoadingDepartments && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -163,91 +168,80 @@ export const UnitForm: React.FC<UnitFormProps> = ({
               </Alert>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Management Section */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5" />
-            Management
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="unitManager" className="text-sm font-medium">
-              Unit Manager
-              <span className="text-muted-foreground ml-1">(Optional)</span>
+        {/* Row 2: Unit Manager (full width) */}
+        <div className="space-y-2">
+          <Label htmlFor="unitManager" className="text-sm font-medium">
+            Unit Manager
+            <span className="text-muted-foreground ml-1">(Optional)</span>
+          </Label>
+          <Select
+            value={unitFormData.managerId}
+            onValueChange={(value: string) => handleInputChange('managerId', value)}
+            disabled={isLoadingUsers}
+          >
+            <SelectTrigger className="w-full" disabled={isLoadingUsers}>
+              <SelectValue placeholder={isLoadingUsers ? "Loading users..." : "Select manager"} />
+            </SelectTrigger>
+            <SelectContent>
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading users...</span>
+                </div>
+              ) : (
+                <>
+                  <SelectItem value="none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">No Manager Assigned</span>
+                    </div>
+                  </SelectItem>
+                  {availableUsers
+                    .filter(user => user.isActive)
+                    .map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.fullName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {user.role.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                </>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Row 3: Status (full width) */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Label htmlFor="unitActive" className="text-sm font-medium">
+              Unit Status
             </Label>
-            <Select
-              value={unitFormData.managerId}
-              onValueChange={(value: string) => handleInputChange('managerId', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select manager" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">No Manager Assigned</span>
-                  </div>
-                </SelectItem>
-                {availableUsers
-                  .filter(user => user.isActive)
-                  .map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{user.fullName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {user.role.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
             <p className="text-xs text-muted-foreground">
-              Assign a manager to oversee this unit. This can be done later.
+              Active units are visible and operational
             </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Status Section */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="h-5 w-5" />
-            Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="unitActive" className="text-sm font-medium">
-                Unit Status
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Active units are visible and operational
-              </p>
-            </div>
-            <Switch
-              id="unitActive"
-              checked={unitFormData.isActive}
-              onCheckedChange={(checked: boolean) => handleInputChange('isActive', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          <Switch
+            id="unitActive"
+            checked={unitFormData.isActive}
+            onCheckedChange={(checked: boolean) => handleInputChange('isActive', checked)}
+          />
+        </div>
+      </div>
       
       {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-6">
-        <Button variant="outline" onClick={onCancel} type="button">
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <Button variant="outline" onClick={onCancel} type="button" className="gap-2">
+          <X className="h-4 w-4" />
           Cancel
         </Button>
-        <Button onClick={handleSubmit} type="button" disabled={activeDepartments.length === 0}>
-          Create Unit
+        <Button onClick={handleSubmit} type="button" disabled={activeDepartments.length === 0} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add
         </Button>
       </div>
     </div>

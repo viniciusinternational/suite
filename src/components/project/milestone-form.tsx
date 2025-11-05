@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Flag } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 
 // Validation schema
 const milestoneSchema = z.object({
@@ -56,23 +56,17 @@ export function MilestoneForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        {/* Milestone Information */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Flag className="h-5 w-5" />
-              Milestone Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <div className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" id="milestone-form">
+          {/* Row 1: Milestone Name */}
+          <div className="space-y-2">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Milestone Name</FormLabel>
+                  <FormLabel>Milestone Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter milestone name" {...field} />
                   </FormControl>
@@ -80,7 +74,10 @@ export function MilestoneForm({
                 </FormItem>
               )}
             />
+          </div>
 
+          {/* Row 2: Description (full width) */}
+          <div className="space-y-2">
             <FormField
               control={form.control}
               name="description"
@@ -98,55 +95,63 @@ export function MilestoneForm({
                 </FormItem>
               )}
             />
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Due Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* Row 3: Due Date and Budget */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Due Date *</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="budget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Budget (₦)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter milestone budget"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            <FormField
+              control={form.control}
+              name="budget"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Budget (₦)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter milestone budget"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </form>
+      </Form>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Milestone'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onCancel} className="gap-2">
+          <X className="h-4 w-4" />
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          form="milestone-form"
+          disabled={isSubmitting}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          {isSubmitting ? 'Saving...' : 'Add'}
+        </Button>
+      </div>
+    </div>
   );
 }
 

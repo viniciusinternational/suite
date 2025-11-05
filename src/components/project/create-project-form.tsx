@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateProject } from '@/hooks/use-projects';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
-import { FolderKanban, Building2, Calendar, DollarSign, Users } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 
 // Validation schema
 const createProjectSchema = z.object({
@@ -191,7 +191,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                       </FormControl>
@@ -327,7 +327,7 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
                     <FormLabel>Priority</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                       </FormControl>
@@ -347,12 +347,14 @@ export function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onSuccess}>
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onSuccess} className="gap-2">
+            <X className="h-4 w-4" />
             Cancel
           </Button>
-          <Button type="submit" disabled={createProject.isPending}>
-            {createProject.isPending ? 'Creating...' : 'Create Project'}
+          <Button type="submit" disabled={createProject.isPending} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {createProject.isPending ? 'Creating...' : 'Add'}
           </Button>
         </div>
       </form>

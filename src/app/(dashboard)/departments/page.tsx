@@ -44,6 +44,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 // Import the reusable form components
 import { DepartmentForm } from "@/components/department/department-form";
@@ -75,7 +77,7 @@ export default function DepartmentsPage() {
   const queryClient = useQueryClient();
 
   // Fetch departments
-  const { data: departmentsResponse, isLoading, error } = useQuery({
+  const { data: departmentsResponse, isLoading, isFetching, error } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const response = await axiosClient.get<{ ok: boolean; data: Department[] }>('/departments');
@@ -361,16 +363,6 @@ export default function DepartmentsPage() {
     setIsAddUnitOpen(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading departments...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return <div className="p-6 text-red-600">Error loading departments: {error.message}</div>;
   }
@@ -409,7 +401,7 @@ export default function DepartmentsPage() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Unit</DialogTitle>
+                <DialogTitle>Add Unit</DialogTitle>
                 <DialogDescription>
                   Create a new unit within a department.
                 </DialogDescription>
@@ -433,7 +425,7 @@ export default function DepartmentsPage() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Department</DialogTitle>
+                <DialogTitle>Add Department</DialogTitle>
                 <DialogDescription>
                   Create a new department with organizational details.
                 </DialogDescription>
@@ -539,14 +531,58 @@ export default function DepartmentsPage() {
             </div>
           </div>
 
-          {/* Simple loading indicator */}
-          {isMutating && (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground">Processing...</p>
+          {/* Loading state for refetching */}
+          {isFetching && !isLoading && (
+            <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Refreshing departments...</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Loading state for mutations */}
+          {isMutating && (
+            <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Processing...</span>
+            </div>
+          )}
+
+          {/* Department grid with loading state */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                      <Skeleton className="h-8 w-8 rounded" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-16" />
+                      <div className="flex gap-1">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <Skeleton className="h-5 w-10" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredDepartments.map((department) => (
                 <Card key={department.id} className="hover:shadow-md">
                   <CardHeader className="pb-3">
@@ -650,6 +686,7 @@ export default function DepartmentsPage() {
                 </Card>
               ))}
             </div>
+          )}
         </CardContent>
       </Card>
 

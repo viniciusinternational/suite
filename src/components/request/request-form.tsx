@@ -27,7 +27,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
 import type { RequestForm as RequestFormType } from '@/types';
-import { FileText, Package, DollarSign, Plus, Trash2 } from 'lucide-react';
+import { FileText, Package, DollarSign, Plus, Trash2, X } from 'lucide-react';
 
 // Validation schema
 const itemSchema = z.object({
@@ -205,7 +205,7 @@ export function RequestForm({ request, onSuccess }: RequestFormProps) {
                     <FormLabel>Request Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
@@ -250,7 +250,7 @@ export function RequestForm({ request, onSuccess }: RequestFormProps) {
                     <FormLabel>Priority</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                       </FormControl>
@@ -303,7 +303,7 @@ export function RequestForm({ request, onSuccess }: RequestFormProps) {
                   <FormLabel>Department</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                     </FormControl>
@@ -479,14 +479,16 @@ export function RequestForm({ request, onSuccess }: RequestFormProps) {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onSuccess}>
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onSuccess} className="gap-2">
+            <X className="h-4 w-4" />
             Cancel
           </Button>
-          <Button type="submit" disabled={createRequest.isPending || updateRequest.isPending}>
+          <Button type="submit" disabled={createRequest.isPending || updateRequest.isPending} className="gap-2">
+            <Plus className="h-4 w-4" />
             {createRequest.isPending || updateRequest.isPending
               ? `${isEditMode ? 'Updating' : 'Creating'}...`
-              : `${isEditMode ? 'Update' : 'Create'} Request`}
+              : isEditMode ? 'Update' : 'Add'}
           </Button>
         </div>
       </form>
