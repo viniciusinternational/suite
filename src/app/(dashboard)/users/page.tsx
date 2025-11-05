@@ -49,10 +49,8 @@ import {
   UserPlus,
   Save,
   ArrowLeft,
-  ArrowRight,
   Loader2,
-  AlertCircle,
-  CheckCircle2
+  AlertCircle
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -63,27 +61,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { User, ZitadelUser, Department, UserRole } from '@/types';
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/use-users';
-import { ZitadelUserSelector } from '@/components/user/zitadel-user-selector';
+import type { User, Department, UserRole } from '@/types';
+import { useUsers, useUpdateUser, useDeleteUser } from '@/hooks/use-users';
 import { PermissionsEditor } from '@/components/user/permissions-editor';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '@/lib/axios';
+import { useRouter } from 'next/navigation';
 
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 export default function UsersPage() {
   useAuthGuard(['view_users']);
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
-  const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
-  const [selectedZitadelUser, setSelectedZitadelUser] = useState<ZitadelUser | null>(null);
 
   // Fetch users from API
   const { data: users = [], isLoading, error, refetch } = useUsers({
@@ -103,7 +99,6 @@ export default function UsersPage() {
   const departments: Department[] = departmentsResponse?.data || [];
 
   // Mutations
-  const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
 
@@ -167,24 +162,6 @@ export default function UsersPage() {
   const openUserDetail = (user: User) => {
     setSelectedUser(user);
     setIsDetailOpen(true);
-  };
-
-  const handleAddUser = async () => {
-    try {
-      await createUserMutation.mutateAsync({
-        ...userFormData,
-        salary: parseFloat(userFormData.salary),
-        departmentId: userFormData.departmentId || undefined,
-        employeeId: userFormData.employeeId || undefined,
-      });
-      
-      resetUserForm();
-      setIsAddUserOpen(false);
-      setCreateStep(1);
-      setSelectedZitadelUser(null);
-    } catch (error) {
-      console.error('Failed to create user:', error);
-    }
   };
 
   const handleEditUser = async () => {
@@ -257,35 +234,6 @@ export default function UsersPage() {
       role: 'employee',
       permissions: {},
     });
-  };
-
-  const handleZitadelUserSelect = (zitadelUser: ZitadelUser | null) => {
-    setSelectedZitadelUser(zitadelUser);
-    if (zitadelUser) {
-      setUserFormData(prev => ({
-        ...prev,
-        firstName: zitadelUser.firstName,
-        lastName: zitadelUser.lastName,
-        fullName: zitadelUser.displayName,
-        email: zitadelUser.email,
-      }));
-    }
-  };
-
-  const handleNextStep = () => {
-    if (createStep === 1 && !selectedZitadelUser) {
-      alert('Please select a user from Zitadel');
-      return;
-    }
-    if (createStep < 3) {
-      setCreateStep((createStep + 1) as 1 | 2 | 3);
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (createStep > 1) {
-      setCreateStep((createStep - 1) as 1 | 2 | 3);
-    }
   };
 
   const uniqueRoles = [...new Set(users.map(user => user.role))];
@@ -478,7 +426,7 @@ export default function UsersPage() {
             value={userFormData.gender} 
             onValueChange={(value) => setUserFormData({ ...userFormData, gender: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
@@ -497,7 +445,7 @@ export default function UsersPage() {
             value={userFormData.departmentId || 'none'} 
             onValueChange={(value) => setUserFormData({ ...userFormData, departmentId: value === 'none' ? '' : value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
@@ -517,7 +465,7 @@ export default function UsersPage() {
                     value={userFormData.role} 
                     onValueChange={(value: UserRole) => setUserFormData({ ...userFormData, role: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -598,12 +546,7 @@ export default function UsersPage() {
             <FileText className="h-4 w-4 mr-2" />
             Reports
           </Button>
-          <Button onClick={() => {
-            resetUserForm();
-            setCreateStep(1);
-            setSelectedZitadelUser(null);
-            setIsAddUserOpen(true);
-          }}>
+          <Button onClick={() => router.push('/users/new')}>
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </Button>
@@ -833,7 +776,7 @@ export default function UsersPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openUserDetail(user)}>
+                              <DropdownMenuItem onClick={() => router.push(`/users/${user.id}`)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
@@ -879,124 +822,6 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedUser && <UserDetail user={selectedUser} />}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add User Dialog - Multi-Step */}
-      <Dialog open={isAddUserOpen} onOpenChange={(open) => {
-        setIsAddUserOpen(open);
-        if (!open) {
-          setCreateStep(1);
-          setSelectedZitadelUser(null);
-          resetUserForm();
-        }
-      }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Add New User - Step {createStep} of 3</DialogTitle>
-            <DialogDescription>
-              {createStep === 1 && 'Select a user from Zitadel'}
-              {createStep === 2 && 'Enter user details and information'}
-              {createStep === 3 && 'Configure user permissions'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Step Indicators */}
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    step === createStep
-                      ? 'bg-blue-600 text-white'
-                      : step < createStep
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {step < createStep ? <CheckCircle2 className="h-5 w-5" /> : step}
-                </div>
-                {step < 3 && <div className="w-12 h-0.5 bg-gray-300 mx-2" />}
-              </div>
-            ))}
-          </div>
-
-          {/* Step Content */}
-          <div className="flex-1 overflow-y-auto min-h-[400px]">
-            {createStep === 1 && (
-              <ZitadelUserSelector
-                onSelect={handleZitadelUserSelect}
-                selectedUserId={selectedZitadelUser?.id}
-              />
-            )}
-
-            {createStep === 2 && (
-              <div className="max-h-[60vh] overflow-y-auto">
-                <UserFormStep2 />
-              </div>
-            )}
-
-            {createStep === 3 && (
-              <div className="space-y-4">
-                <PermissionsEditor
-                  value={userFormData.permissions}
-                  onChange={(permissions) =>
-                    setUserFormData({ ...userFormData, permissions })
-                  }
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handlePrevStep}
-              disabled={createStep === 1}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsAddUserOpen(false);
-                  setCreateStep(1);
-                  setSelectedZitadelUser(null);
-                  resetUserForm();
-                }}
-              >
-                Cancel
-              </Button>
-
-              {createStep < 3 ? (
-                <Button onClick={handleNextStep}>
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleAddUser}
-                  disabled={createUserMutation.isPending}
-                >
-                  {createUserMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Create User
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

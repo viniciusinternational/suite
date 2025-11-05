@@ -22,13 +22,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+
 import { 
   FolderKanban, 
   Search, 
@@ -52,7 +46,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CreateProjectForm } from '@/components/project/create-project-form';
+
 import { useProjects } from '@/hooks/use-projects';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
@@ -67,7 +61,6 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Fetch projects
   const { data: projects = [], isLoading } = useProjects({
@@ -78,7 +71,7 @@ export default function ProjectsPage() {
   });
 
   // Fetch departments
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const response = await axios.get('/departments');
@@ -155,7 +148,7 @@ export default function ProjectsPage() {
             <FileText className="h-4 w-4 mr-2" />
             Reports
           </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button onClick={() => router.push('/projects/new')}>
             <Plus className="h-4 w-4 mr-2" />
             Create Project
           </Button>
@@ -164,53 +157,73 @@ export default function ProjectsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                <p className="text-2xl font-bold text-gray-900">{projectStats.total}</p>
-              </div>
-              <FolderKanban className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Projects</p>
-                <p className="text-2xl font-bold text-green-700">{projectStats.active}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                    <p className="text-2xl font-bold text-gray-900">{projectStats.total}</p>
+                  </div>
+                  <FolderKanban className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Active Projects</p>
+                    <p className="text-2xl font-bold text-green-700">{projectStats.active}</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Departments</p>
-                <p className="text-2xl font-bold text-blue-700">{projectStats.departments}</p>
-              </div>
-              <Building2 className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Departments</p>
+                    <p className="text-2xl font-bold text-blue-700">{projectStats.departments}</p>
+                  </div>
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Team Members</p>
-                <p className="text-2xl font-bold text-purple-700">{projectStats.teamMembers}</p>
-              </div>
-              <Users className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Team Members</p>
+                    <p className="text-2xl font-bold text-purple-700">{projectStats.teamMembers}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
       
       {/* Project Directory */}
@@ -262,17 +275,27 @@ export default function ProjectsPage() {
               </SelectContent>
             </Select>
             
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter} disabled={departmentsLoading}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by department" />
+                {departmentsLoading ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : (
+                  <SelectValue placeholder="Filter by department" />
+                )}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {departments?.map((dept: any) => (
-                  <SelectItem key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </SelectItem>
-                ))}
+                {departmentsLoading ? (
+                  <SelectItem value="_loading" disabled>Loading...</SelectItem>
+                ) : departments.length === 0 ? (
+                  <SelectItem value="_empty" disabled>No departments found</SelectItem>
+                ) : (
+                  departments?.map((dept: any) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -408,23 +431,6 @@ export default function ProjectsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Create Project Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Create a new project with basic information. Milestones and tasks can be added later.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProjectForm 
-            onSuccess={() => {
-              setIsCreateDialogOpen(false);
-            }} 
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
