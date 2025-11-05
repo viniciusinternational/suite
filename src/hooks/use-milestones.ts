@@ -2,7 +2,35 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '@/lib/axios';
 import type { Milestone } from '@/types';
 
-// GET /api/projects/[id]/milestones - List milestones
+interface MilestoneFilters {
+  status?: string;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface MilestonePaginationResponse {
+  data: Milestone[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  analytics: {
+    total: number;
+    completed: number;
+    overdue: number;
+    inProgress: number;
+    totalBudget: number;
+    totalSpent: number;
+    averageProgress: number;
+  };
+}
+
+// GET /api/projects/[id]/milestones - List milestones (legacy, for backward compatibility)
 export function useMilestones(projectId: string | undefined) {
   return useQuery({
     queryKey: ['milestones', projectId],
@@ -10,6 +38,47 @@ export function useMilestones(projectId: string | undefined) {
       if (!projectId) return [];
       const response = await axios.get(`/projects/${projectId}/milestones`);
       return response.data.data as Milestone[];
+    },
+    enabled: !!projectId,
+  });
+}
+
+// GET /api/projects/[id]/milestones - List milestones with pagination and filters
+export function useMilestonesWithPagination(
+  projectId: string | undefined,
+  filters?: MilestoneFilters
+) {
+  return useQuery({
+    queryKey: ['milestones', projectId, filters],
+    queryFn: async () => {
+      if (!projectId) {
+        return {
+          data: [],
+          pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
+          analytics: {
+            total: 0,
+            completed: 0,
+            overdue: 0,
+            inProgress: 0,
+            totalBudget: 0,
+            totalSpent: 0,
+            averageProgress: 0,
+          },
+        };
+      }
+
+      const params = new URLSearchParams();
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await axios.get(
+        `/projects/${projectId}/milestones?${params.toString()}`
+      );
+      return response.data as MilestonePaginationResponse;
     },
     enabled: !!projectId,
   });
@@ -27,6 +96,7 @@ export function useCreateMilestone(projectId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'analytics'] });
     },
   });
 }
@@ -43,6 +113,7 @@ export function useUpdateMilestone(projectId: string, milestoneId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'analytics'] });
     },
   });
 }
@@ -59,7 +130,11 @@ export function useDeleteMilestone(projectId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'analytics'] });
     },
   });
 }
+
+// Export types for use in components
+export type { MilestoneFilters, MilestonePaginationResponse };
 

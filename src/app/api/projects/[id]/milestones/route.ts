@@ -11,13 +11,24 @@ const createMilestoneSchema = z.object({
   budget: z.number().min(0, 'Budget must be 0 or greater').optional().default(0),
 });
 
-// GET /api/projects/[id]/milestones - List milestones for a project
+// GET /api/projects/[id]/milestones - List milestones for a project with pagination, filtering, and analytics
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    
+    // Extract query parameters
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
+
     // Check if project exists
     const project = await prisma.project.findUnique({
       where: { id },
@@ -33,8 +44,66 @@ export async function GET(
       );
     }
 
-    const milestones = await prisma.milestone.findMany({
+    // Build where clause
+    const where: any = { projectId: id };
+
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (startDate || endDate) {
+      where.dueDate = {};
+      if (startDate) {
+        where.dueDate.gte = startDate;
+      }
+      if (endDate) {
+        where.dueDate.lte = endDate;
+      }
+    }
+
+    // Get all milestones for analytics (before pagination)
+    const allMilestones = await prisma.milestone.findMany({
       where: { projectId: id },
+      select: {
+        status: true,
+        progress: true,
+        budget: true,
+        spent: true,
+        dueDate: true,
+      },
+    });
+
+    // Calculate analytics
+    const now = new Date();
+    const analytics = {
+      total: allMilestones.length,
+      completed: allMilestones.filter(m => m.status === 'completed').length,
+      overdue: allMilestones.filter(m => {
+        if (m.status === 'completed') return false;
+        const due = new Date(m.dueDate);
+        return due < now;
+      }).length,
+      inProgress: allMilestones.filter(m => m.status === 'in_progress').length,
+      totalBudget: allMilestones.reduce((sum, m) => sum + m.budget, 0),
+      totalSpent: allMilestones.reduce((sum, m) => sum + m.spent, 0),
+      averageProgress: allMilestones.length > 0
+        ? Math.round(allMilestones.reduce((sum, m) => sum + m.progress, 0) / allMilestones.length)
+        : 0,
+    };
+
+    // Get total count for pagination
+    const total = await prisma.milestone.count({ where });
+
+    // Get paginated milestones
+    const milestones = await prisma.milestone.findMany({
+      where,
       include: {
         _count: {
           select: {
@@ -45,11 +114,22 @@ export async function GET(
       orderBy: {
         dueDate: 'asc',
       },
+      take: limit,
+      skip: offset,
     });
+
+    const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json({
       ok: true,
       data: milestones,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+      analytics,
     });
   } catch (error) {
     console.error('Error fetching milestones:', error);
