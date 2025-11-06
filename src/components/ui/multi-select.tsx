@@ -51,7 +51,7 @@ export function MultiSelect({
   }, [options, search])
 
   const selectedOptions = useMemo(() => {
-    return options.filter((option) => selected.includes(option.id))
+    return options.filter((option) => selected.includes(option.value))
   }, [options, selected])
 
   const toggleOption = (optionId: string) => {
@@ -119,13 +119,13 @@ export function MultiSelect({
             <div className="p-1">
               {filteredOptions.map((option) => (
                 <div
-                  key={option.id}
+                  key={option.value}
                   className="flex items-center space-x-2 p-2 hover:bg-accent rounded-sm cursor-pointer"
-                  onClick={() => toggleOption(option.id)}
+                  onClick={() => toggleOption(option.value)}
                 >
                   <Checkbox
-                    checked={selected.includes(option.id)}
-                    onCheckedChange={() => toggleOption(option.id)}
+                    checked={selected.includes(option.value)}
+                    onCheckedChange={() => toggleOption(option.value)}
                   />
                   {option.avatar && (
                     <img

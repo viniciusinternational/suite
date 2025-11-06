@@ -28,6 +28,8 @@ model Department {
   events      Event[]         @relation("EventDepartments")
   requestForms RequestForm[]  @relation("RequestFormDepartment")
   memos       Memo[]          @relation("MemoDepartments")
+  deductions  Deduction[]     @relation("DeductionDepartments")
+  allowances  Allowance[]     @relation("AllowanceDepartments")
 
   @@map("departments")
 }
@@ -86,6 +88,11 @@ model User {
   memos            Memo[]              @relation("MemoUsers")
   teams            Team[]              @relation("TeamUsers")
   teamsLed          Team[]              @relation("TeamLeader")
+  payrollEntries   PayrollEntry[]
+  deductions       Deduction[]          @relation("DeductionUsers")
+  allowances       Allowance[]          @relation("AllowanceUsers")
+  payrollsCreated  Payroll[]            @relation("PayrollCreatedBy")
+  payrollApprovals PayrollApproval[]    @relation("PayrollApprovalUser")
 
   @@map("users")
 }
@@ -334,4 +341,152 @@ model Team {
   tasks       Task[]   @relation("TeamTasks")
 
   @@map("teams")
+}
+
+model Payroll {
+  id          String   @id @default(cuid())
+  periodMonth Int      // 1-12
+  periodYear  Int
+  status      String   @default("draft") // draft, pending_dept_head, pending_admin_head, pending_accountant, approved, rejected, processed, paid
+  createdById String?  // User who created the payroll
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  entries     PayrollEntry[]
+  approvals   PayrollApproval[]
+  createdBy   User?    @relation("PayrollCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([periodMonth, periodYear])
+  @@index([periodYear, periodMonth])
+  @@index([status])
+  @@index([createdById])
+  @@map("payrolls")
+}
+
+model PayrollEntry {
+  id          String   @id @default(cuid())
+  payrollId   String
+  userId      String
+  baseSalary  Float
+  deductions  Float    @default(0)
+  allowances  Float    @default(0)
+  netSalary   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  payroll     Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  deductionApplications PayrollDeductionApplication[]
+  allowanceApplications PayrollAllowanceApplication[]
+
+  @@index([payrollId])
+  @@index([userId])
+  @@map("payroll_entries")
+}
+
+model Deduction {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  always      Boolean  @default(false)
+  amount      Float?   // Fixed amount (nullable)
+  percent     Float?   // Percentage (nullable)
+  global      Boolean  @default(false) // If true, applies to all users
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]   @relation("DeductionUsers")
+  departments Department[] @relation("DeductionDepartments")
+  applications PayrollDeductionApplication[]
+
+  @@index([global])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([always])
+  @@map("deductions")
+}
+
+model Allowance {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  always      Boolean  @default(false)
+  amount      Float?   // Fixed amount (nullable)
+  percent     Float?   // Percentage (nullable)
+  global      Boolean  @default(false) // If true, applies to all users
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]   @relation("AllowanceUsers")
+  departments Department[] @relation("AllowanceDepartments")
+  applications PayrollAllowanceApplication[]
+
+  @@index([global])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([always])
+  @@map("allowances")
+}
+
+model PayrollDeductionApplication {
+  id              String   @id @default(cuid())
+  payrollEntryId  String
+  deductionId     String
+  sourceAmount    Float    // Base amount used for calculation
+  calculatedAmount Float   // Final amount after percent calculation
+  appliedAt       DateTime @default(now())
+
+  // Relations
+  payrollEntry    PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+  deduction       Deduction    @relation(fields: [deductionId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+  @@index([deductionId])
+  @@map("payroll_deduction_applications")
+}
+
+model PayrollAllowanceApplication {
+  id              String   @id @default(cuid())
+  payrollEntryId  String
+  allowanceId     String
+  sourceAmount    Float    // Base amount used for calculation
+  calculatedAmount Float   // Final amount after percent calculation
+  appliedAt       DateTime @default(now())
+
+  // Relations
+  payrollEntry    PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+  allowance       Allowance    @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+  @@index([allowanceId])
+  @@map("payroll_allowance_applications")
+}
+
+model PayrollApproval {
+  id         String   @id @default(cuid())
+  payrollId  String
+  userId     String
+  level      String   // dept_head, admin_head, accountant
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  payroll    Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  user       User     @relation("PayrollApprovalUser", fields: [userId], references: [id])
+
+  @@index([payrollId])
+  @@index([userId])
+  @@index([status])
+  @@map("payroll_approvals")
 }

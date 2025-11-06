@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MemoTable } from '@/components/memo/memo-table'
 import { useDeleteMemo, useMemos } from '@/hooks/use-memos'
 import { hasPermission } from '@/lib/permissions'
 import type { Memo } from '@/types'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react'
 
 export default function MemosPage() {
   const { user } = useAuthGuard(['view_memos'])
@@ -20,8 +21,23 @@ export default function MemosPage() {
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
-  const { data: memos = [], isLoading } = useMemos({ isActive: undefined })
+  const { data: memos = [], isLoading, isFetching } = useMemos({ isActive: undefined })
   const deleteMutation = useDeleteMemo()
+
+  // Calculate analytics
+  const analytics = useMemo(() => {
+    const now = new Date()
+    const active = memos.filter((m) => m.isActive)
+    const expired = memos.filter((m) => m.expiresAt && new Date(m.expiresAt) < now)
+    const urgentHigh = memos.filter((m) => m.priority === 'urgent' || m.priority === 'high')
+
+    return {
+      total: memos.length,
+      active: active.length,
+      expired: expired.length,
+      urgentHigh: urgentHigh.length,
+    }
+  }, [memos])
 
   // Filter memos
   const filteredMemos = memos.filter((memo) => {
@@ -34,6 +50,8 @@ export default function MemosPage() {
     }
     return true
   })
+
+  const isMutating = deleteMutation.isPending
 
   // Check permissions
   const canAddMemo = user && hasPermission(user, 'add_memos')
@@ -67,6 +85,88 @@ export default function MemosPage() {
         )}
       </div>
 
+      {/* Analytics Cards */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Memos
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {analytics.total}
+                  </p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Active Memos
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {analytics.active}
+                  </p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Expired Memos
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {analytics.expired}
+                  </p>
+                </div>
+                <XCircle className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Urgent/High Priority
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {analytics.urgentHigh}
+                  </p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -80,21 +180,29 @@ export default function MemosPage() {
                 className="pl-10" 
                 placeholder="Search memos..." 
                 value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
+                onChange={(e) => setSearch(e.target.value)}
+                disabled={isMutating}
               />
+              {isFetching && !isLoading && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+              )}
             </div>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            {isLoading ? (
+              <Skeleton className="h-10 w-[180px]" />
+            ) : (
+              <Select value={priorityFilter} onValueChange={setPriorityFilter} disabled={isMutating}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -106,17 +214,21 @@ export default function MemosPage() {
           <CardDescription>View and manage all memos in the system</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-gray-600">Loading memos...</div>
-          ) : (
-            <MemoTable 
-              memos={filteredMemos}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              canEdit={canEditMemo}
-              canDelete={canDeleteMemo}
-            />
+          {/* Loading state for mutations */}
+          {isMutating && (
+            <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground mb-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Processing...</span>
+            </div>
           )}
+          <MemoTable 
+            memos={filteredMemos}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            canEdit={canEditMemo}
+            canDelete={canDeleteMemo}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
     </div>

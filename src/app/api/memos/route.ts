@@ -26,47 +26,51 @@ export async function GET(request: NextRequest) {
     const headers = request.headers
     const currentUserId = headers.get('x-user-id')
 
-    const where: any = {}
+    // Build where clause conditions
+    const conditions: any[] = []
 
     // Filter by target user
     if (targetUserId) {
-      where.users = { some: { id: targetUserId } }
+      conditions.push({ users: { some: { id: targetUserId } } })
     }
 
     // Filter by target department
     if (targetDepartmentId) {
-      where.departments = { some: { id: targetDepartmentId } }
+      conditions.push({ departments: { some: { id: targetDepartmentId } } })
     }
 
     // Filter by active status
-    if (isActive !== null) {
-      where.isActive = isActive === 'true'
+    if (isActive !== null && isActive !== '') {
+      conditions.push({ isActive: isActive === 'true' })
     }
 
     // Filter by priority
     if (priority) {
-      where.priority = priority
+      conditions.push({ priority })
     }
 
     // If currentUserId is provided, only show memos targeted to this user or their department
     if (currentUserId) {
-      where.OR = [
-        { users: { some: { id: currentUserId } } },
-        { departments: { some: { users: { some: { id: currentUserId } } } } },
-        // Also include memos created by the current user
-        { createdById: currentUserId },
-      ]
+      conditions.push({
+        OR: [
+          { users: { some: { id: currentUserId } } },
+          { departments: { some: { users: { some: { id: currentUserId } } } } },
+          // Also include memos created by the current user
+          { createdById: currentUserId },
+        ],
+      })
     }
 
     // Filter out expired memos
-    where.AND = [
-      {
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
-      },
-    ]
+    conditions.push({
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } },
+      ],
+    })
+
+    // Build final where clause
+    const where = conditions.length > 0 ? { AND: conditions } : {}
 
     const memos = await prisma.memo.findMany({
       where,
