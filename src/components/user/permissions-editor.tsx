@@ -116,6 +116,8 @@ const MODULE_PERMISSIONS = [
     permissions: [
       { key: 'view_approvals', label: 'View Approvals', description: 'View approval workflows' },
       { key: 'approve_approvals', label: 'Approve Approvals', description: 'Approve pending approvals' },
+      { key: 'add_approvers', label: 'Add Approvers', description: 'Delegate additional approvers at your level' },
+      { key: 'manage_approvers', label: 'Manage Approvers', description: 'Allow approvers to delegate and manage approval chains' },
     ],
   },
   {

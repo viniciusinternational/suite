@@ -77,12 +77,14 @@ model User {
   unitManagerOf    DepartmentUnit[]    @relation("UnitManager")
   projectsManaged  Project[]           @relation("ProjectManager")
   tasksAssigned    Task[]             @relation("TaskAssignee")
-  approvals        Approval[]
+  approvals        Approval[]           @relation("ProjectApprovalUser")
+  projectApprovalsAdded Approval[]        @relation("ApprovalAddedBy")
   auditLogs        AuditLog[]          @relation("AuditLogUser")
   createdEvents    Event[]             @relation("EventCreatedBy")
   events           Event[]             @relation("EventUsers")
   requestsCreated  RequestForm[]       @relation("RequestFormRequester")
   requestApprovals RequestApproval[]    @relation("RequestApprovalUser")
+  requestApprovalsAdded RequestApproval[] @relation("RequestApprovalAddedBy")
   requestComments  RequestComment[]     @relation("RequestCommentUser")
   createdMemos     Memo[]              @relation("MemoCreatedBy")
   memos            Memo[]              @relation("MemoUsers")
@@ -93,6 +95,12 @@ model User {
   allowances       Allowance[]          @relation("AllowanceUsers")
   payrollsCreated  Payroll[]            @relation("PayrollCreatedBy")
   payrollApprovals PayrollApproval[]    @relation("PayrollApprovalUser")
+  payrollApprovalsAdded PayrollApproval[] @relation("PayrollApprovalAddedBy")
+  paymentsCreated  Payment[]            @relation("PaymentCreatedBy")
+  paymentsSubmitted Payment[]           @relation("PaymentSubmittedBy")
+  paymentsPayee    Payment[]            @relation("PaymentPayee")
+  paymentApprovals PaymentApproval[]    @relation("PaymentApprovalUser")
+  paymentApprovalsAdded PaymentApproval[] @relation("PaymentApprovalAddedBy")
 
   @@map("users")
 }
@@ -121,6 +129,7 @@ model Project {
   milestones  Milestone[]
   tasks       Task[]
   approvals   Approval[]
+  payments    Payment[]
 
   @@map("projects")
 }
@@ -174,18 +183,22 @@ model Approval {
   id         String   @id @default(cuid())
   projectId  String
   userId     String
+  addedById  String?
   level      String   // director, ceo
   status     String   @default("pending") // pending, approved, rejected
   actionDate String?
   comments   String?
+  canAddApprovers Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation("ProjectApprovalUser", fields: [userId], references: [id])
+  addedBy    User?    @relation("ApprovalAddedBy", fields: [addedById], references: [id])
 
   @@map("approvals")
+  @@index([addedById])
 }
 
 model AuditLog {
@@ -280,6 +293,7 @@ model RequestForm {
   department      Department        @relation("RequestFormDepartment", fields: [departmentId], references: [id])
   approvals       RequestApproval[]
   comments        RequestComment[]
+  payments        Payment[]
 
   @@index([status])
   @@index([departmentId])
@@ -292,20 +306,24 @@ model RequestApproval {
   id           String   @id @default(cuid())
   requestFormId String
   userId       String
+  addedById    String?
   level        String   // dept_head, admin_head
   status       String   @default("pending") // pending, approved, rejected
   actionDate   String?
   comments     String?
+  canAddApprovers Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
   requestForm RequestForm @relation(fields: [requestFormId], references: [id], onDelete: Cascade)
   user        User        @relation("RequestApprovalUser", fields: [userId], references: [id])
+  addedBy     User?       @relation("RequestApprovalAddedBy", fields: [addedById], references: [id])
 
   @@index([requestFormId])
   @@index([userId])
   @@index([status])
+  @@index([addedById])
   @@map("request_approvals")
 }
 
@@ -356,6 +374,7 @@ model Payroll {
   entries     PayrollEntry[]
   approvals   PayrollApproval[]
   createdBy   User?    @relation("PayrollCreatedBy", fields: [createdById], references: [id])
+  payments    Payment[]
 
   @@unique([periodMonth, periodYear])
   @@index([periodYear, periodMonth])
@@ -474,19 +493,154 @@ model PayrollApproval {
   id         String   @id @default(cuid())
   payrollId  String
   userId     String
+  addedById  String?
   level      String   // dept_head, admin_head, accountant
   status     String   @default("pending") // pending, approved, rejected
   actionDate String?
   comments   String?
+  canAddApprovers Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
   payroll    Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
   user       User     @relation("PayrollApprovalUser", fields: [userId], references: [id])
+  addedBy    User?    @relation("PayrollApprovalAddedBy", fields: [addedById], references: [id])
 
   @@index([payrollId])
   @@index([userId])
   @@index([status])
+  @@index([addedById])
   @@map("payroll_approvals")
+}
+
+model Payment {
+  id                         String    @id @default(cuid())
+  sourceType                 String    @default("none") // project, requestForm, payroll, none
+  requestFormId              String?
+  projectId                  String?
+  payrollId                  String?
+  createdById                String?
+  submittedById              String?
+  approverIds                String[]  @default([])
+  payeeId                    String?
+  payerAccountId             String?
+  currency                   String
+  exchangeRate               Float?
+  isForeignCurrency          Boolean   @default(false)
+  amount                     Float
+  taxAmount                  Float?
+  totalAmount                Float
+  fxAppliedAmount            Float?
+  balanceOutstanding         Float?
+  status                     String    @default("draft") // draft, scheduled, partially_paid, paid, voided
+  method                     String    @default("bank_transfer")
+  paymentDate                String?
+  dueDate                    String?
+  scheduledFor               String?
+  notes                      String?
+  reference                  String?
+  tags                       String[]  @default([])
+  requiresApproval           Boolean   @default(false)
+  isDraft                    Boolean   @default(true)
+  isLocked                   Boolean   @default(false)
+  isArchived                 Boolean   @default(false)
+  isRecurring                Boolean   @default(false)
+  recurrenceTemplateId       String?
+  derivedFromRequestFormItems Boolean  @default(false)
+  requestFormItemIds         String[]  @default([])
+  attachments                Json?
+  auditLog                   Json?
+  reconciliationStatus       String?
+  reconciliationDate         String?
+  ledgerEntryIds             String[]  @default([])
+  lastReminderSentAt         DateTime?
+  cancellationReason         String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  // Relations
+  project                    Project? @relation(fields: [projectId], references: [id])
+  requestForm                RequestForm? @relation(fields: [requestFormId], references: [id])
+  payroll                    Payroll? @relation(fields: [payrollId], references: [id])
+  createdBy                  User?    @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  submittedBy                User?    @relation("PaymentSubmittedBy", fields: [submittedById], references: [id])
+  payee                      User?    @relation("PaymentPayee", fields: [payeeId], references: [id])
+  items                      PaymentItem[]
+  installments               PaymentInstallment[]
+  approvals                  PaymentApproval[]
+
+  @@index([sourceType])
+  @@index([status])
+  @@index([projectId])
+  @@index([requestFormId])
+  @@index([payrollId])
+  @@index([createdById])
+  @@index([payeeId])
+  @@map("payments")
+}
+
+model PaymentItem {
+  id                 String   @id @default(cuid())
+  paymentId          String
+  description        String
+  quantity           Float    @default(1)
+  unitPrice          Float
+  currency           String?
+  taxRate            Float?
+  taxAmount          Float?
+  total              Float
+  requestFormItemId  String?
+  metadata           Json?
+
+  // Relations
+  payment            Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_items")
+}
+
+model PaymentInstallment {
+  id          String   @id @default(cuid())
+  paymentId   String
+  dueDate     String
+  amount      Float
+  status      String   @default("pending") // pending, paid, overdue, voided
+  paidAt      String?
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([status])
+  @@map("payment_installments")
+}
+
+model PaymentApproval {
+  id         String   @id @default(cuid())
+  paymentId  String
+  userId     String
+  addedById  String?
+  level      String   // accountant, finance_manager, ceo
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  canAddApprovers Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user       User    @relation("PaymentApprovalUser", fields: [userId], references: [id])
+  addedBy    User?   @relation("PaymentApprovalAddedBy", fields: [addedById], references: [id])
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([status])
+  @@index([addedById])
+  @@map("payment_approvals")
 }

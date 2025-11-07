@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, UserPlus } from 'lucide-react';
 import type { RequestForm, RequestApproval } from '@/types';
 import { useState } from 'react';
 import { useApproveRequest } from '@/hooks/use-requests';
@@ -19,6 +19,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { AddApproverDialog } from '@/components/approvals/add-approver-dialog';
+import { hasPermission } from '@/lib/permissions';
 
 interface RequestApprovalProps {
   request: RequestForm;
@@ -33,6 +35,7 @@ export function RequestApproval({ request, onApprovalChange }: RequestApprovalPr
   const [comments, setComments] = useState('');
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [approvalLevel, setApprovalLevel] = useState<'dept_head' | 'admin_head' | null>(null);
+  const canAddApproverPermission = hasPermission(user ?? null, 'add_approvers') || hasPermission(user ?? null, 'manage_approvers');
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -145,6 +148,8 @@ export function RequestApproval({ request, onApprovalChange }: RequestApprovalPr
             sortedApprovals.map((approval) => {
               const canApprove = canApproveAtLevel(approval);
               const isPending = approval.status === 'pending';
+              const isActorForApproval = user?.id && approval.userId === user.id;
+              const canAddApprover = Boolean(isActorForApproval && canAddApproverPermission);
 
               return (
                 <div
@@ -170,12 +175,34 @@ export function RequestApproval({ request, onApprovalChange }: RequestApprovalPr
                           {new Date(approval.actionDate).toLocaleString()}
                         </p>
                       )}
+                      {approval.addedBy && (
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Added by {approval.addedBy.fullName}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={getStatusColor(approval.status)}>
-                      {approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="outline" className={getStatusColor(approval.status)}>
+                        {approval.status.charAt(0).toUpperCase() + approval.status.slice(1)}
+                      </Badge>
+                      {canAddApprover && (
+                        <AddApproverDialog
+                          approvalId={approval.id}
+                          entityType="request"
+                          currentLevel={approval.level}
+                          requiredPermission="approve_requests"
+                          onSuccess={() => onApprovalChange?.()}
+                          trigger={
+                            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs">
+                              <UserPlus className="h-3 w-3" />
+                              Add approver
+                            </Button>
+                          }
+                        />
+                      )}
+                    </div>
                     {canApprove && isPending && (
                       <div className="flex gap-2">
                         <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>

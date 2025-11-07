@@ -63,28 +63,34 @@ export function MemoForm({ memo, onSuccess }: Props) {
   }, [])
 
   const onSubmit = async (values: FormValues) => {
-    const payload = {
-      title: values.title,
-      content: values.content,
-      priority: values.priority,
-      expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : undefined,
-      userIds: values.userIds || [],
-      departmentIds: values.departmentIds || [],
-    }
+    try {
+      const payload = {
+        title: values.title,
+        content: values.content,
+        priority: values.priority,
+        expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : undefined,
+        userIds: values.userIds || [],
+        departmentIds: values.departmentIds || [],
+      }
 
-    if (memo?.id) {
-      await updateMutation.mutateAsync(payload)
-    } else {
-      await createMutation.mutateAsync(payload)
+      if (memo?.id) {
+        await updateMutation.mutateAsync(payload)
+      } else {
+        await createMutation.mutateAsync(payload)
+      }
+      onSuccess?.()
+    } catch (error: any) {
+      console.error('Error saving memo:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to save memo'
+      alert(errorMessage)
     }
-    onSuccess?.()
   }
 
   // Prepare options for MultiSelect
   const userOptions = users.map((u) => ({
     id: u.id,
     label: u.fullName,
-    value: u.email,
+    value: u.id,
     avatar: u.avatar,
     description: u.position,
   }))
@@ -92,7 +98,7 @@ export function MemoForm({ memo, onSuccess }: Props) {
   const departmentOptions = departments.map((d) => ({
     id: d.id,
     label: d.name,
-    value: d.code,
+    value: d.id,
     description: d.sector,
   }))
 

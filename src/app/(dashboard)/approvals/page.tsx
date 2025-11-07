@@ -4,7 +4,7 @@ import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PendingApprovalsList } from '@/components/approvals/pending-approvals-list';
 import { usePendingApprovals } from '@/hooks/use-approvals';
-import { FileText, FolderKanban, Briefcase, Clock } from 'lucide-react';
+import { FileText, FolderKanban, Briefcase, Clock, Wallet, CreditCard } from 'lucide-react';
 
 export default function ApprovalsPage() {
   useAuthGuard(['view_approvals']);
@@ -16,6 +16,8 @@ export default function ApprovalsPage() {
     requests: pendingApprovals.filter((a) => a.type === 'request').length,
     projects: pendingApprovals.filter((a) => a.type === 'project').length,
     leave: pendingApprovals.filter((a) => a.type === 'leave').length,
+    payroll: pendingApprovals.filter((a) => a.type === 'payroll').length,
+    payments: pendingApprovals.filter((a) => a.type === 'payment').length,
   };
 
   return (
@@ -27,7 +29,7 @@ export default function ApprovalsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
@@ -62,6 +64,24 @@ export default function ApprovalsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.leave}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Payroll</CardTitle>
+            <Wallet className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.payroll}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Payments</CardTitle>
+            <CreditCard className="h-4 w-4 text-rose-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.payments}</div>
           </CardContent>
         </Card>
       </div>

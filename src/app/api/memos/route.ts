@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createAuditLog } from '@/lib/audit-logger'
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 import { z } from 'zod'
 
 // Validation schemas
@@ -51,23 +51,36 @@ export async function GET(request: NextRequest) {
 
     // If currentUserId is provided, only show memos targeted to this user or their department
     if (currentUserId) {
+      // First, get the user's department
+      const currentUser = await prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { departmentId: true }
+      })
+      
+      const orConditions: any[] = [
+        { users: { some: { id: currentUserId } } },
+        // Also include memos created by the current user
+        { createdById: currentUserId },
+      ]
+      
+      // If user belongs to a department, include memos targeted to that department
+      if (currentUser?.departmentId) {
+        orConditions.push({ departments: { some: { id: currentUser.departmentId } } })
+      }
+      
+      conditions.push({ OR: orConditions })
+    }
+
+    // Only filter out expired memos when isActive is explicitly 'true'
+    // When isActive is undefined or not 'true', show all memos including expired
+    if (isActive === 'true') {
       conditions.push({
         OR: [
-          { users: { some: { id: currentUserId } } },
-          { departments: { some: { users: { some: { id: currentUserId } } } } },
-          // Also include memos created by the current user
-          { createdById: currentUserId },
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
         ],
       })
     }
-
-    // Filter out expired memos
-    conditions.push({
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-    })
 
     // Build final where clause
     const where = conditions.length > 0 ? { AND: conditions } : {}
@@ -99,7 +112,137 @@ export async function POST(request: NextRequest) {
     const data = memoBodySchema.parse(body)
 
     const headers = request.headers
-    const actorUserId = headers.get('x-user-id') || undefined
+    const actorUserId = headers.get('x-user-id')?.trim() || undefined
+
+    // Validate user exists if actorUserId is provided
+    // If user doesn't exist, we'll just skip setting createdById (it's optional)
+    let validCreatedById: string | undefined = undefined
+    if (actorUserId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: actorUserId },
+        select: { id: true }
+      })
+      
+      if (userExists) {
+        validCreatedById = actorUserId
+      } else {
+        // Log warning but don't fail - createdById is optional
+        console.warn(`Warning: User ID ${actorUserId} from x-user-id header not found in database. Creating memo without creator.`)
+      }
+    }
+
+    // Convert userIds (emails or IDs) to actual user IDs
+    let resolvedUserIds: string[] = []
+    if (data.userIds && data.userIds.length > 0) {
+      const validUserInputs = data.userIds.filter(input => input && input.trim())
+      if (validUserInputs.length > 0) {
+        // Check if inputs are emails (contain @) or IDs (CUID format)
+        const emails = validUserInputs.filter(input => input.includes('@'))
+        const possibleIds = validUserInputs.filter(input => !input.includes('@'))
+        
+        const userQueries: any[] = []
+        
+        // Query by emails
+        if (emails.length > 0) {
+          userQueries.push(
+            prisma.user.findMany({
+              where: { email: { in: emails } },
+              select: { id: true, email: true }
+            })
+          )
+        }
+        
+        // Query by IDs
+        if (possibleIds.length > 0) {
+          userQueries.push(
+            prisma.user.findMany({
+              where: { id: { in: possibleIds } },
+              select: { id: true, email: true }
+            })
+          )
+        }
+        
+        const userResults = await Promise.all(userQueries)
+        const foundUsers = userResults.flat()
+        resolvedUserIds = foundUsers.map(u => u.id)
+        
+        // Check if all inputs were resolved
+        if (foundUsers.length !== validUserInputs.length) {
+          const foundEmails = new Set(foundUsers.map(u => u.email))
+          const foundIds = new Set(foundUsers.map(u => u.id))
+          const missingInputs = validUserInputs.filter(input => {
+            if (input.includes('@')) {
+              return !foundEmails.has(input)
+            } else {
+              return !foundIds.has(input)
+            }
+          })
+          return NextResponse.json(
+            { ok: false, error: `Invalid user emails/IDs: ${missingInputs.join(', ')}` },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    // Convert departmentIds (codes, names, or IDs) to actual department IDs
+    let resolvedDepartmentIds: string[] = []
+    if (data.departmentIds && data.departmentIds.length > 0) {
+      const validDeptInputs = data.departmentIds.filter(input => input && input.trim())
+      if (validDeptInputs.length > 0) {
+        // Check if inputs are codes, names, or IDs
+        // Try to find by code first (most common), then by name, then by ID
+        const departmentQueries: any[] = []
+        
+        // Query by code
+        departmentQueries.push(
+          prisma.department.findMany({
+            where: { code: { in: validDeptInputs } },
+            select: { id: true, code: true, name: true }
+          })
+        )
+        
+        // Query by name (for inputs not found by code)
+        departmentQueries.push(
+          prisma.department.findMany({
+            where: { name: { in: validDeptInputs } },
+            select: { id: true, code: true, name: true }
+          })
+        )
+        
+        // Query by ID (CUID format)
+        const possibleIds = validDeptInputs.filter(input => input.startsWith('cm'))
+        if (possibleIds.length > 0) {
+          departmentQueries.push(
+            prisma.department.findMany({
+              where: { id: { in: possibleIds } },
+              select: { id: true, code: true, name: true }
+            })
+          )
+        }
+        
+        const deptResults = await Promise.all(departmentQueries)
+        const foundDepts = deptResults.flat()
+        // Remove duplicates
+        const uniqueDepts = Array.from(new Map(foundDepts.map(d => [d.id, d])).values())
+        resolvedDepartmentIds = uniqueDepts.map(d => d.id)
+        
+        // Check if all inputs were resolved
+        const foundCodes = new Set(uniqueDepts.map(d => d.code))
+        const foundNames = new Set(uniqueDepts.map(d => d.name))
+        const foundIds = new Set(uniqueDepts.map(d => d.id))
+        const missingInputs = validDeptInputs.filter(input => {
+          return !foundCodes.has(input) && !foundNames.has(input) && !foundIds.has(input)
+        })
+        
+        if (missingInputs.length > 0) {
+          return NextResponse.json(
+            { ok: false, error: `Invalid department codes/names/IDs: ${missingInputs.join(', ')}` },
+            { status: 400 }
+          )
+        }
+      }
+    }
 
     // Check if user has permission to create memos (could check permissions here)
 
@@ -109,9 +252,9 @@ export async function POST(request: NextRequest) {
         content: data.content,
         priority: data.priority,
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-        createdById: actorUserId,
-        users: data.userIds && data.userIds.length ? { connect: data.userIds.map((id) => ({ id })) } : undefined,
-        departments: data.departmentIds && data.departmentIds.length ? { connect: data.departmentIds.map((id) => ({ id })) } : undefined,
+        createdById: validCreatedById,
+        users: resolvedUserIds.length > 0 ? { connect: resolvedUserIds.map((id) => ({ id })) } : undefined,
+        departments: resolvedDepartmentIds.length > 0 ? { connect: resolvedDepartmentIds.map((id) => ({ id })) } : undefined,
       },
       include: {
         users: { select: { id: true, fullName: true, email: true, role: true } },
@@ -122,14 +265,7 @@ export async function POST(request: NextRequest) {
 
     // Audit log (best-effort)
     try {
-      const userId = headers.get('x-user-id') || ''
-      const userSnapshot = {
-        id: userId,
-        fullName: headers.get('x-user-fullname') || 'Unknown',
-        email: headers.get('x-user-email') || 'unknown@example.com',
-        role: headers.get('x-user-role') || 'unknown',
-        departmentId: headers.get('x-user-department-id') || undefined,
-      }
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
       await createAuditLog({
         userId: userId || 'system',
         userSnapshot,

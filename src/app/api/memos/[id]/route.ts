@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createAuditLog } from '@/lib/audit-logger'
+import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 import { z } from 'zod'
 
 const updateMemoSchema = z.object({
@@ -55,6 +55,119 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: 'Memo not found' }, { status: 404 })
     }
 
+    // Convert userIds (emails or IDs) to actual user IDs
+    let resolvedUserIds: string[] | undefined = undefined
+    if (data.userIds && data.userIds.length > 0) {
+      const validUserInputs = data.userIds.filter(input => input && input.trim())
+      if (validUserInputs.length > 0) {
+        // Check if inputs are emails (contain @) or IDs (CUID format)
+        const emails = validUserInputs.filter(input => input.includes('@'))
+        const possibleIds = validUserInputs.filter(input => !input.includes('@'))
+        
+        const userQueries: any[] = []
+        
+        // Query by emails
+        if (emails.length > 0) {
+          userQueries.push(
+            prisma.user.findMany({
+              where: { email: { in: emails } },
+              select: { id: true, email: true }
+            })
+          )
+        }
+        
+        // Query by IDs
+        if (possibleIds.length > 0) {
+          userQueries.push(
+            prisma.user.findMany({
+              where: { id: { in: possibleIds } },
+              select: { id: true, email: true }
+            })
+          )
+        }
+        
+        const userResults = await Promise.all(userQueries)
+        const foundUsers = userResults.flat()
+        resolvedUserIds = foundUsers.map(u => u.id)
+        
+        // Check if all inputs were resolved
+        if (foundUsers.length !== validUserInputs.length) {
+          const foundEmails = new Set(foundUsers.map(u => u.email))
+          const foundIds = new Set(foundUsers.map(u => u.id))
+          const missingInputs = validUserInputs.filter(input => {
+            if (input.includes('@')) {
+              return !foundEmails.has(input)
+            } else {
+              return !foundIds.has(input)
+            }
+          })
+          return NextResponse.json(
+            { ok: false, error: `Invalid user emails/IDs: ${missingInputs.join(', ')}` },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    // Convert departmentIds (codes, names, or IDs) to actual department IDs
+    let resolvedDepartmentIds: string[] | undefined = undefined
+    if (data.departmentIds && data.departmentIds.length > 0) {
+      const validDeptInputs = data.departmentIds.filter(input => input && input.trim())
+      if (validDeptInputs.length > 0) {
+        // Check if inputs are codes, names, or IDs
+        // Try to find by code first (most common), then by name, then by ID
+        const departmentQueries: any[] = []
+        
+        // Query by code
+        departmentQueries.push(
+          prisma.department.findMany({
+            where: { code: { in: validDeptInputs } },
+            select: { id: true, code: true, name: true }
+          })
+        )
+        
+        // Query by name (for inputs not found by code)
+        departmentQueries.push(
+          prisma.department.findMany({
+            where: { name: { in: validDeptInputs } },
+            select: { id: true, code: true, name: true }
+          })
+        )
+        
+        // Query by ID (CUID format)
+        const possibleIds = validDeptInputs.filter(input => input.startsWith('cm'))
+        if (possibleIds.length > 0) {
+          departmentQueries.push(
+            prisma.department.findMany({
+              where: { id: { in: possibleIds } },
+              select: { id: true, code: true, name: true }
+            })
+          )
+        }
+        
+        const deptResults = await Promise.all(departmentQueries)
+        const foundDepts = deptResults.flat()
+        // Remove duplicates
+        const uniqueDepts = Array.from(new Map(foundDepts.map(d => [d.id, d])).values())
+        resolvedDepartmentIds = uniqueDepts.map(d => d.id)
+        
+        // Check if all inputs were resolved
+        const foundCodes = new Set(uniqueDepts.map(d => d.code))
+        const foundNames = new Set(uniqueDepts.map(d => d.name))
+        const foundIds = new Set(uniqueDepts.map(d => d.id))
+        const missingInputs = validDeptInputs.filter(input => {
+          return !foundCodes.has(input) && !foundNames.has(input) && !foundIds.has(input)
+        })
+        
+        if (missingInputs.length > 0) {
+          return NextResponse.json(
+            { ok: false, error: `Invalid department codes/names/IDs: ${missingInputs.join(', ')}` },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
     const previous = await prisma.memo.findUnique({ where: { id } })
     const updated = await prisma.memo.update({
       where: { id },
@@ -64,8 +177,8 @@ export async function PATCH(
         priority: data.priority ?? undefined,
         isActive: data.isActive ?? undefined,
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : data.expiresAt === '' ? null : undefined,
-        users: data.userIds ? { set: data.userIds.map((uid) => ({ id: uid })) } : undefined,
-        departments: data.departmentIds ? { set: data.departmentIds.map((did) => ({ id: did })) } : undefined,
+        users: resolvedUserIds !== undefined ? { set: resolvedUserIds.map((id) => ({ id })) } : undefined,
+        departments: resolvedDepartmentIds !== undefined ? { set: resolvedDepartmentIds.map((id) => ({ id })) } : undefined,
       },
       include: {
         users: { select: { id: true, fullName: true, email: true, role: true } },
@@ -77,14 +190,7 @@ export async function PATCH(
     // Audit log (best-effort)
     try {
       const headers = request.headers
-      const userId = headers.get('x-user-id') || ''
-      const userSnapshot = {
-        id: userId,
-        fullName: headers.get('x-user-fullname') || 'Unknown',
-        email: headers.get('x-user-email') || 'unknown@example.com',
-        role: headers.get('x-user-role') || 'unknown',
-        departmentId: headers.get('x-user-department-id') || undefined,
-      }
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
       await createAuditLog({
         userId: userId || 'system',
         userSnapshot,
@@ -128,14 +234,7 @@ export async function DELETE(
     // Audit log (best-effort)
     try {
       const headers = request.headers
-      const userId = headers.get('x-user-id') || ''
-      const userSnapshot = {
-        id: userId,
-        fullName: headers.get('x-user-fullname') || 'Unknown',
-        email: headers.get('x-user-email') || 'unknown@example.com',
-        role: headers.get('x-user-role') || 'unknown',
-        departmentId: headers.get('x-user-department-id') || undefined,
-      }
+      const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
       await createAuditLog({
         userId: userId || 'system',
         userSnapshot,

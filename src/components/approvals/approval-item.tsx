@@ -1,14 +1,18 @@
 'use client';
 
+import Link from 'next/link';
+import { useState } from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useApproveAction } from '@/hooks/use-approvals';
 import { useAuthStore } from '@/store/auth-store';
-import { useState } from 'react';
-import { CheckCircle2, XCircle, FileText, DollarSign, Calendar, FolderKanban, Briefcase } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, DollarSign, Calendar, FolderKanban, Briefcase, UserPlus, Wallet, CreditCard } from 'lucide-react';
 import type { UnifiedApproval } from '@/hooks/use-approvals';
+import { AddApproverDialog } from '@/components/approvals/add-approver-dialog';
+import { hasPermission } from '@/lib/permissions';
 
 interface ApprovalItemProps {
   approval: UnifiedApproval;
@@ -18,6 +22,7 @@ export function ApprovalItem({ approval }: ApprovalItemProps) {
   const { user } = useAuthStore();
   const approveAction = useApproveAction(approval.id);
   const [comments, setComments] = useState('');
+  const canAddApproverPermission = hasPermission(user ?? null, 'add_approvers') || hasPermission(user ?? null, 'manage_approvers');
 
   const isProcessing = approveAction.isPending;
 
@@ -56,6 +61,10 @@ export function ApprovalItem({ approval }: ApprovalItemProps) {
         return <FolderKanban className="h-4 w-4 text-green-500" />;
       case 'leave':
         return <Briefcase className="h-4 w-4 text-purple-500" />;
+      case 'payroll':
+        return <Wallet className="h-4 w-4 text-amber-500" />;
+      case 'payment':
+        return <CreditCard className="h-4 w-4 text-rose-500" />;
       default:
         return <FileText className="h-4 w-4 text-gray-500" />;
     }
@@ -69,6 +78,10 @@ export function ApprovalItem({ approval }: ApprovalItemProps) {
         return 'Project';
       case 'leave':
         return 'Leave';
+      case 'payroll':
+        return 'Payroll';
+      case 'payment':
+        return 'Payment';
       default:
         return type;
     }
@@ -109,11 +122,26 @@ export function ApprovalItem({ approval }: ApprovalItemProps) {
   };
 
   const entity = approval.entity;
+  const canAddApprover = canAddApproverPermission && (approval.type === 'request' || approval.type === 'project');
+  const requiredPermission = approval.type === 'request' ? 'approve_requests' : approval.type === 'project' ? 'approve_projects' : undefined;
+  const addApproverButton = canAddApprover && requiredPermission ? (
+    <AddApproverDialog
+      approvalId={approval.approvalId}
+      entityType={approval.type === 'project' ? 'project' : 'request'}
+      currentLevel={approval.level}
+      requiredPermission={requiredPermission}
+      trigger={
+        <Button variant="ghost" size="sm" className="h-8 gap-2 px-3 text-xs">
+          <UserPlus className="h-4 w-4" /> Add approver
+        </Button>
+      }
+    />
+  ) : null;
 
   return (
     <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
             {getTypeIcon(approval.type)}
@@ -187,45 +215,104 @@ export function ApprovalItem({ approval }: ApprovalItemProps) {
               Department: {entity.department.name}
             </div>
           )}
+
+          {approval.type === 'payroll' && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500">Period:</span>{' '}
+                <span className="font-medium">
+                  {entity.periodMonth}/{entity.periodYear}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">Status:</span>{' '}
+                <Badge variant="outline" className="capitalize">
+                  {entity.status?.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          {approval.type === 'payment' && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500">Amount:</span>{' '}
+                <span className="font-medium">
+                  {entity.currency} {Number(entity.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">Status:</span>{' '}
+                <Badge variant="outline" className="capitalize">
+                  {entity.status?.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              {entity.reference && (
+                <div className="col-span-2">
+                  <span className="text-gray-500">Reference:</span>{' '}
+                  <span>{entity.reference}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        {addApproverButton}
       </div>
 
       {/* Approval Actions */}
       <div className="space-y-3 pt-3 border-t">
-        <div>
-          <Label htmlFor={`comments-${approval.id}`}>Comments (Optional)</Label>
-          <Textarea
-            id={`comments-${approval.id}`}
-            placeholder="Add your comments..."
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            rows={3}
-            className="mt-1"
-            disabled={isProcessing}
-          />
-        </div>
+        {approval.type === 'request' || approval.type === 'project' || approval.type === 'leave' ? (
+          <>
+            <div>
+              <Label htmlFor={`comments-${approval.id}`}>Comments (Optional)</Label>
+              <Textarea
+                id={`comments-${approval.id}`}
+                placeholder="Add your comments..."
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={3}
+                className="mt-1"
+                disabled={isProcessing}
+              />
+            </div>
 
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={handleReject}
-            disabled={isProcessing}
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            {isProcessing ? 'Processing...' : 'Reject'}
-          </Button>
-          <Button
-            size="sm"
-            className="bg-green-600 hover:bg-green-700 text-white"
-            onClick={handleApprove}
-            disabled={isProcessing}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            {isProcessing ? 'Processing...' : 'Approve'}
-          </Button>
-        </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleReject}
+                disabled={isProcessing}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                {isProcessing ? 'Processing...' : 'Reject'}
+              </Button>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleApprove}
+                disabled={isProcessing}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {isProcessing ? 'Processing...' : 'Approve'}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-end">
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link
+                href={
+                  approval.type === 'payroll'
+                    ? `/payroll/${approval.entityId}`
+                    : `/payments/${approval.entityId}`
+                }
+              >
+                Review in {approval.type === 'payroll' ? 'Payroll' : 'Payments'}
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

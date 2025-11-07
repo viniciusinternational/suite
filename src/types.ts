@@ -57,6 +57,8 @@ export type PermissionKey =
   // Approvals Module
   | 'view_approvals'
   | 'approve_approvals'
+  | 'add_approvers'
+  | 'manage_approvers'
   // Settings Module
   | 'view_settings'
   | 'edit_settings'
@@ -166,12 +168,15 @@ export interface DepartmentUnit {
 export interface Approval {
   id: string;
   userId: string;
+  addedById?: string;
   level: 'director' | 'ceo';
   status: 'pending' | 'approved' | 'rejected';
   actionDate?: string;
   comments?: string;
+  canAddApprovers?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
 }
 
 
@@ -272,6 +277,7 @@ export interface PayrollApproval {
   id: string;
   payrollId: string;
   userId: string;
+  addedById?: string;
   level: 'dept_head' | 'admin_head' | 'accountant';
   status: 'pending' | 'approved' | 'rejected';
   actionDate?: string;
@@ -279,6 +285,8 @@ export interface PayrollApproval {
   createdAt: string;
   updatedAt: string;
   user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  canAddApprovers?: boolean;
 }
 
 export interface PayrollEntry {
@@ -407,13 +415,16 @@ export interface RequestApproval {
   id: string;
   requestFormId: string;
   userId: string;
+  addedById?: string;
   level: 'dept_head' | 'admin_head';
   status: 'pending' | 'approved' | 'rejected';
   actionDate?: string;
   comments?: string;
+  canAddApprovers?: boolean;
   createdAt?: string;
   updatedAt?: string;
   user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
 }
 
 export interface RequestComment {
@@ -426,20 +437,122 @@ export interface RequestComment {
   user?: Pick<User, 'id' | 'fullName' | 'email' | 'avatar'>;
 }
 
-export interface Payment {
+export type PaymentStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'partially_paid'
+  | 'paid'
+  | 'voided';
+
+export type PaymentSourceType = 'project' | 'requestForm' | 'payroll' | 'none';
+
+export interface PaymentSource {
+  type: PaymentSourceType;
+  projectId?: string;
+  requestFormId?: string;
+  payrollId?: string;
+}
+
+export interface PaymentItemSnapshot {
   id: string;
-  requestFormId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  currency?: string;
+  taxRate?: number;
+  taxAmount?: number;
+  total: number;
+  requestFormItemId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PaymentInstallment {
+  id: string;
+  dueDate: string;
   amount: number;
-  date: string;
-  status: 'pending' | 'approved' | 'paid' | 'failed' | 'cancelled';
-  method: 'bank_transfer' | 'check' | 'cash' | 'credit_card';
-  paidBy?: string; // Accountant who processed the payment
+  status: 'pending' | 'paid' | 'overdue' | 'voided';
   paidAt?: string;
   reference?: string;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+export type PaymentReconciliationStatus =
+  | 'unreconciled'
+  | 'partially_reconciled'
+  | 'reconciled';
 
+export interface Payment {
+  id: string;
+  source: PaymentSource;
+  requestFormId?: string;
+  projectId?: string;
+  payrollId?: string;
+  project?: Pick<Project, 'id' | 'name' | 'code'>;
+  requestForm?: Pick<RequestForm, 'id' | 'name' | 'status'>;
+  payroll?: Pick<Payroll, 'id' | 'periodMonth' | 'periodYear' | 'status'>;
+  createdAt?: string;
+  updatedAt?: string;
+  createdById?: string;
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  submittedById?: string;
+  submittedBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  approverIds?: string[];
+  payeeId?: string;
+  payee?: Pick<User, 'id' | 'fullName' | 'email'>;
+  payerAccountId?: string;
+  currency: string;
+  exchangeRate?: number;
+  isForeignCurrency?: boolean;
+  amount: number;
+  taxAmount?: number;
+  totalAmount: number;
+  fxAppliedAmount?: number;
+  balanceOutstanding?: number;
+  status: PaymentStatus;
+  method: 'bank_transfer' | 'check' | 'cash' | 'credit_card' | 'other';
+  paymentDate?: string;
+  dueDate?: string;
+  scheduledFor?: string;
+  notes?: string;
+  reference?: string;
+  tags?: string[];
+  requiresApproval?: boolean;
+  isDraft?: boolean;
+  isLocked?: boolean;
+  isArchived?: boolean;
+  isRecurring?: boolean;
+  recurrenceTemplateId?: string;
+  derivedFromRequestFormItems?: boolean;
+  requestFormItemIds?: string[];
+  items: PaymentItemSnapshot[];
+  installments?: PaymentInstallment[];
+  approvals?: PaymentApproval[];
+  auditLog?: Record<string, unknown>[];
+  attachments?: string[];
+  reconciliationStatus?: PaymentReconciliationStatus;
+  reconciliationDate?: string;
+  ledgerEntryIds?: string[];
+  lastReminderSentAt?: string;
+  cancellationReason?: string;
+}
+
+export interface PaymentApproval {
+  id: string;
+  paymentId: string;
+  userId: string;
+  addedById?: string;
+  level: 'accountant' | 'finance_manager' | 'ceo';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  canAddApprovers?: boolean;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+}
 // Audit Log Types
 export type AuditActionType = 
   // Generic CRUD operations

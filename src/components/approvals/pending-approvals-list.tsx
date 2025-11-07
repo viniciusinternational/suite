@@ -46,6 +46,8 @@ export function PendingApprovalsList() {
   const requestApprovals = pendingApprovals.filter((a) => a.type === 'request');
   const projectApprovals = pendingApprovals.filter((a) => a.type === 'project');
   const leaveApprovals = pendingApprovals.filter((a) => a.type === 'leave');
+  const payrollApprovals = pendingApprovals.filter((a) => a.type === 'payroll');
+  const paymentApprovals = pendingApprovals.filter((a) => a.type === 'payment');
 
   return (
     <Card>
@@ -62,7 +64,7 @@ export function PendingApprovalsList() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="all">
               All ({pendingApprovals.length})
             </TabsTrigger>
@@ -74,6 +76,12 @@ export function PendingApprovalsList() {
             </TabsTrigger>
             <TabsTrigger value="leave">
               Leave ({leaveApprovals.length})
+            </TabsTrigger>
+            <TabsTrigger value="payroll">
+              Payroll ({payrollApprovals.length})
+            </TabsTrigger>
+            <TabsTrigger value="payments">
+              Payments ({paymentApprovals.length})
             </TabsTrigger>
           </TabsList>
 
@@ -115,6 +123,30 @@ export function PendingApprovalsList() {
                 <p className="text-sm text-gray-500 text-center py-8">No pending leave approvals</p>
               ) : (
                 leaveApprovals.map((approval) => (
+                  <ApprovalItem key={approval.id} approval={approval} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="payroll" className="mt-4">
+            <div className="space-y-4">
+              {payrollApprovals.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">No pending payroll approvals</p>
+              ) : (
+                payrollApprovals.map((approval) => (
+                  <ApprovalItem key={approval.id} approval={approval} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="payments" className="mt-4">
+            <div className="space-y-4">
+              {paymentApprovals.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">No pending payment approvals</p>
+              ) : (
+                paymentApprovals.map((approval) => (
                   <ApprovalItem key={approval.id} approval={approval} />
                 ))
               )}

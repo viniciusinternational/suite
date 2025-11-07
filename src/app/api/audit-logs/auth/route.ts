@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
         : `User logged out: ${finalUserSnapshot.fullName} (${finalUserSnapshot.email})`,
       previousData: null,
       newData: action === 'USER_LOGIN' ? { userId: finalUserId, email: finalUserSnapshot.email } : null,
-      ipAddress: ipAddress || request.ip ?? headers.get('x-forwarded-for') ?? undefined,
-      userAgent: userAgent || headers.get('user-agent') ?? undefined,
+      ipAddress: (ipAddress || request.ip) ?? headers.get('x-forwarded-for') ?? undefined,
+      userAgent: (userAgent || headers.get('user-agent')) ?? undefined,
       isSuccessful: true,
     });
 
