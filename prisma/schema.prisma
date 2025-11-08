@@ -1,0 +1,646 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  headId      String?
+  sector      String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  units       DepartmentUnit[]
+  projects    Project[]
+  head        User?           @relation("DepartmentHead", fields: [headId], references: [id])
+  events      Event[]         @relation("EventDepartments")
+  requestForms RequestForm[]  @relation("RequestFormDepartment")
+  memos       Memo[]          @relation("MemoDepartments")
+  deductions  Deduction[]     @relation("DeductionDepartments")
+  allowances  Allowance[]     @relation("AllowanceDepartments")
+
+  @@map("departments")
+}
+
+model DepartmentUnit {
+  id           String   @id @default(cuid())
+  name         String
+  departmentId String
+  managerId    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  manager      User?      @relation("UnitManager", fields: [managerId], references: [id])
+  events       Event[]    @relation("EventUnits")
+
+  @@map("department_units")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  fullName     String
+  phone        String
+  dob          String
+  gender       String
+  email        String   @unique
+  role         String
+  departmentId String?
+  employeeId   String?
+  position     String
+  hireDate     String
+  salary       Float
+  avatar       String?
+  isActive     Boolean  @default(true)
+  permissions  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  departmentHeadOf Department[]        @relation("DepartmentHead")
+  unitManagerOf    DepartmentUnit[]    @relation("UnitManager")
+  projectsManaged  Project[]           @relation("ProjectManager")
+  tasksAssigned    Task[]             @relation("TaskAssignee")
+  approvals        Approval[]           @relation("ProjectApprovalUser")
+  projectApprovalsAdded Approval[]        @relation("ApprovalAddedBy")
+  auditLogs        AuditLog[]          @relation("AuditLogUser")
+  createdEvents    Event[]             @relation("EventCreatedBy")
+  events           Event[]             @relation("EventUsers")
+  requestsCreated  RequestForm[]       @relation("RequestFormRequester")
+  requestApprovals RequestApproval[]    @relation("RequestApprovalUser")
+  requestApprovalsAdded RequestApproval[] @relation("RequestApprovalAddedBy")
+  requestComments  RequestComment[]     @relation("RequestCommentUser")
+  createdMemos     Memo[]              @relation("MemoCreatedBy")
+  memos            Memo[]              @relation("MemoUsers")
+  teams            Team[]              @relation("TeamUsers")
+  teamsLed          Team[]              @relation("TeamLeader")
+  payrollEntries   PayrollEntry[]
+  deductions       Deduction[]          @relation("DeductionUsers")
+  allowances       Allowance[]          @relation("AllowanceUsers")
+  payrollsCreated  Payroll[]            @relation("PayrollCreatedBy")
+  payrollApprovals PayrollApproval[]    @relation("PayrollApprovalUser")
+  payrollApprovalsAdded PayrollApproval[] @relation("PayrollApprovalAddedBy")
+  paymentsCreated  Payment[]            @relation("PaymentCreatedBy")
+  paymentsSubmitted Payment[]           @relation("PaymentSubmittedBy")
+  paymentsPayee    Payment[]            @relation("PaymentPayee")
+  paymentApprovals PaymentApproval[]    @relation("PaymentApprovalUser")
+  paymentApprovalsAdded PaymentApproval[] @relation("PaymentApprovalAddedBy")
+
+  @@map("users")
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  code        String    @unique
+  description String?
+  clientName  String?
+  departmentId String
+  managerId  String
+  budget      Float
+  spent       Float     @default(0)
+  startDate   String
+  endDate     String
+  status      String    @default("planning") // planning, active, on_hold, completed, cancelled
+  priority    String    @default("medium")   // low, medium, high, critical
+  progress    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  department  Department @relation(fields: [departmentId], references: [id])
+  manager     User       @relation("ProjectManager", fields: [managerId], references: [id])
+  milestones  Milestone[]
+  tasks       Task[]
+  approvals   Approval[]
+  payments    Payment[]
+
+  @@map("projects")
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  dueDate     String
+  status      String   @default("pending") // pending, in_progress, completed, overdue
+  progress    Int      @default(0)
+  budget      Float    @default(0)
+  spent       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@map("milestones")
+}
+
+model Task {
+  id             String   @id @default(cuid())
+  projectId      String
+  milestoneId    String?
+  name           String
+  description    String?
+  assigneeId     String?
+  status         String   @default("todo") // todo, in_progress, review, completed
+  priority       String   @default("medium") // low, medium, high
+  startDate      String?
+  dueDate        String?
+  estimatedHours Float?
+  actualHours    Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone      Milestone? @relation(fields: [milestoneId], references: [id])
+  assignee       User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  teams          Team[]   @relation("TeamTasks")
+
+  @@map("tasks")
+}
+
+model Approval {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  addedById  String?
+  level      String   // director, ceo
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  canAddApprovers Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation("ProjectApprovalUser", fields: [userId], references: [id])
+  addedBy    User?    @relation("ApprovalAddedBy", fields: [addedById], references: [id])
+
+  @@map("approvals")
+  @@index([addedById])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userSnapshot Json     // Stores user details at time of action {id, fullName, email, role, departmentId}
+  actionType   String   // CREATE, UPDATE, DELETE, READ, USER_LOGIN, etc.
+  entityType   String   // User, Project, Department, etc.
+  entityId     String?
+  description  String
+  isSuccessful Boolean  @default(true)
+  previousData Json?    // JSON snapshot of data before change
+  newData      Json?    // JSON snapshot of data after change
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user         User?    @relation("AuditLogUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([actionType])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  tags          String[]
+  link          String?
+  startDateTime DateTime
+  endDateTime   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+
+  // Relations
+  createdBy     User?             @relation("EventCreatedBy", fields: [createdById], references: [id])
+  users         User[]            @relation("EventUsers")
+  departments   Department[]      @relation("EventDepartments")
+  units         DepartmentUnit[]  @relation("EventUnits")
+
+  @@map("events")
+}
+
+model Memo {
+  id            String    @id @default(cuid())
+  title         String
+  content       String
+  priority      String    @default("medium") // low, medium, high, urgent
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+
+  // Relations
+  createdBy     User?       @relation("MemoCreatedBy", fields: [createdById], references: [id])
+  users         User[]      @relation("MemoUsers")
+  departments   Department[] @relation("MemoDepartments")
+
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("memos")
+}
+
+model RequestForm {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  requestedBy String
+  departmentId String
+  type        String   // office_supplies, equipment, travel, training, other
+  status      String   @default("pending_dept_head") // pending_dept_head, pending_admin_head, approved, rejected
+  requestDate String
+  items       Json?    // Array of Item objects
+  amount      Float?
+  currency    String?  @default("NGN")
+  priority    String?  @default("medium") // low, medium, high, urgent
+  category    String?
+  attachments Json?    // Array of file paths/URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  requestedByUser User              @relation("RequestFormRequester", fields: [requestedBy], references: [id])
+  department      Department        @relation("RequestFormDepartment", fields: [departmentId], references: [id])
+  approvals       RequestApproval[]
+  comments        RequestComment[]
+  payments        Payment[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([requestedBy])
+  @@index([type])
+  @@map("request_forms")
+}
+
+model RequestApproval {
+  id           String   @id @default(cuid())
+  requestFormId String
+  userId       String
+  addedById    String?
+  level        String   // dept_head, admin_head
+  status       String   @default("pending") // pending, approved, rejected
+  actionDate   String?
+  comments     String?
+  canAddApprovers Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  requestForm RequestForm @relation(fields: [requestFormId], references: [id], onDelete: Cascade)
+  user        User        @relation("RequestApprovalUser", fields: [userId], references: [id])
+  addedBy     User?       @relation("RequestApprovalAddedBy", fields: [addedById], references: [id])
+
+  @@index([requestFormId])
+  @@index([userId])
+  @@index([status])
+  @@index([addedById])
+  @@map("request_approvals")
+}
+
+model RequestComment {
+  id           String   @id @default(cuid())
+  requestFormId String
+  userId       String
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  requestForm RequestForm @relation(fields: [requestFormId], references: [id], onDelete: Cascade)
+  user        User        @relation("RequestCommentUser", fields: [userId], references: [id])
+
+  @@index([requestFormId])
+  @@index([userId])
+  @@map("request_comments")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  title       String
+  purpose     String?
+  leaderId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  users       User[]   @relation("TeamUsers")
+  tasks       Task[]   @relation("TeamTasks")
+
+  @@map("teams")
+}
+
+model Payroll {
+  id          String   @id @default(cuid())
+  periodMonth Int      // 1-12
+  periodYear  Int
+  status      String   @default("draft") // draft, pending_dept_head, pending_admin_head, pending_accountant, approved, rejected, processed, paid
+  createdById String?  // User who created the payroll
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  entries     PayrollEntry[]
+  approvals   PayrollApproval[]
+  createdBy   User?    @relation("PayrollCreatedBy", fields: [createdById], references: [id])
+  payments    Payment[]
+
+  @@unique([periodMonth, periodYear])
+  @@index([periodYear, periodMonth])
+  @@index([status])
+  @@index([createdById])
+  @@map("payrolls")
+}
+
+model PayrollEntry {
+  id          String   @id @default(cuid())
+  payrollId   String
+  userId      String
+  baseSalary  Float
+  deductions  Float    @default(0)
+  allowances  Float    @default(0)
+  netSalary   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  payroll     Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  deductionApplications PayrollDeductionApplication[]
+  allowanceApplications PayrollAllowanceApplication[]
+
+  @@index([payrollId])
+  @@index([userId])
+  @@map("payroll_entries")
+}
+
+model Deduction {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  always      Boolean  @default(false)
+  amount      Float?   // Fixed amount (nullable)
+  percent     Float?   // Percentage (nullable)
+  global      Boolean  @default(false) // If true, applies to all users
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]   @relation("DeductionUsers")
+  departments Department[] @relation("DeductionDepartments")
+  applications PayrollDeductionApplication[]
+
+  @@index([global])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([always])
+  @@map("deductions")
+}
+
+model Allowance {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  always      Boolean  @default(false)
+  amount      Float?   // Fixed amount (nullable)
+  percent     Float?   // Percentage (nullable)
+  global      Boolean  @default(false) // If true, applies to all users
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]   @relation("AllowanceUsers")
+  departments Department[] @relation("AllowanceDepartments")
+  applications PayrollAllowanceApplication[]
+
+  @@index([global])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([always])
+  @@map("allowances")
+}
+
+model PayrollDeductionApplication {
+  id              String   @id @default(cuid())
+  payrollEntryId  String
+  deductionId     String
+  sourceAmount    Float    // Base amount used for calculation
+  calculatedAmount Float   // Final amount after percent calculation
+  appliedAt       DateTime @default(now())
+
+  // Relations
+  payrollEntry    PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+  deduction       Deduction    @relation(fields: [deductionId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+  @@index([deductionId])
+  @@map("payroll_deduction_applications")
+}
+
+model PayrollAllowanceApplication {
+  id              String   @id @default(cuid())
+  payrollEntryId  String
+  allowanceId     String
+  sourceAmount    Float    // Base amount used for calculation
+  calculatedAmount Float   // Final amount after percent calculation
+  appliedAt       DateTime @default(now())
+
+  // Relations
+  payrollEntry    PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+  allowance       Allowance    @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+  @@index([allowanceId])
+  @@map("payroll_allowance_applications")
+}
+
+model PayrollApproval {
+  id         String   @id @default(cuid())
+  payrollId  String
+  userId     String
+  addedById  String?
+  level      String   // dept_head, admin_head, accountant
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  canAddApprovers Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  payroll    Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  user       User     @relation("PayrollApprovalUser", fields: [userId], references: [id])
+  addedBy    User?    @relation("PayrollApprovalAddedBy", fields: [addedById], references: [id])
+
+  @@index([payrollId])
+  @@index([userId])
+  @@index([status])
+  @@index([addedById])
+  @@map("payroll_approvals")
+}
+
+model Payment {
+  id                         String    @id @default(cuid())
+  sourceType                 String    @default("none") // project, requestForm, payroll, none
+  requestFormId              String?
+  projectId                  String?
+  payrollId                  String?
+  createdById                String?
+  submittedById              String?
+  approverIds                String[]  @default([])
+  payeeId                    String?
+  payerAccountId             String?
+  currency                   String
+  exchangeRate               Float?
+  isForeignCurrency          Boolean   @default(false)
+  amount                     Float
+  taxAmount                  Float?
+  totalAmount                Float
+  fxAppliedAmount            Float?
+  balanceOutstanding         Float?
+  status                     String    @default("draft") // draft, scheduled, partially_paid, paid, voided
+  method                     String    @default("bank_transfer")
+  paymentDate                String?
+  dueDate                    String?
+  scheduledFor               String?
+  notes                      String?
+  reference                  String?
+  tags                       String[]  @default([])
+  requiresApproval           Boolean   @default(false)
+  isDraft                    Boolean   @default(true)
+  isLocked                   Boolean   @default(false)
+  isArchived                 Boolean   @default(false)
+  isRecurring                Boolean   @default(false)
+  recurrenceTemplateId       String?
+  derivedFromRequestFormItems Boolean  @default(false)
+  requestFormItemIds         String[]  @default([])
+  attachments                Json?
+  auditLog                   Json?
+  reconciliationStatus       String?
+  reconciliationDate         String?
+  ledgerEntryIds             String[]  @default([])
+  lastReminderSentAt         DateTime?
+  cancellationReason         String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  // Relations
+  project                    Project? @relation(fields: [projectId], references: [id])
+  requestForm                RequestForm? @relation(fields: [requestFormId], references: [id])
+  payroll                    Payroll? @relation(fields: [payrollId], references: [id])
+  createdBy                  User?    @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  submittedBy                User?    @relation("PaymentSubmittedBy", fields: [submittedById], references: [id])
+  payee                      User?    @relation("PaymentPayee", fields: [payeeId], references: [id])
+  items                      PaymentItem[]
+  installments               PaymentInstallment[]
+  approvals                  PaymentApproval[]
+
+  @@index([sourceType])
+  @@index([status])
+  @@index([projectId])
+  @@index([requestFormId])
+  @@index([payrollId])
+  @@index([createdById])
+  @@index([payeeId])
+  @@map("payments")
+}
+
+model PaymentItem {
+  id                 String   @id @default(cuid())
+  paymentId          String
+  description        String
+  quantity           Float    @default(1)
+  unitPrice          Float
+  currency           String?
+  taxRate            Float?
+  taxAmount          Float?
+  total              Float
+  requestFormItemId  String?
+  metadata           Json?
+
+  // Relations
+  payment            Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_items")
+}
+
+model PaymentInstallment {
+  id          String   @id @default(cuid())
+  paymentId   String
+  dueDate     String
+  amount      Float
+  status      String   @default("pending") // pending, paid, overdue, voided
+  paidAt      String?
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([status])
+  @@map("payment_installments")
+}
+
+model PaymentApproval {
+  id         String   @id @default(cuid())
+  paymentId  String
+  userId     String
+  addedById  String?
+  level      String   // accountant, finance_manager, ceo
+  status     String   @default("pending") // pending, approved, rejected
+  actionDate String?
+  comments   String?
+  canAddApprovers Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user       User    @relation("PaymentApprovalUser", fields: [userId], references: [id])
+  addedBy    User?   @relation("PaymentApprovalAddedBy", fields: [addedById], references: [id])
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([status])
+  @@index([addedById])
+  @@map("payment_approvals")
+}

@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { getNavigationForRole } from '@/lib/navigation';
+import { getNavigationForPermissions } from '@/lib/navigation';
 import type { NavigationItem, UserRole, User as UserType } from '@/types';
 import {
   Sidebar,
@@ -88,8 +88,8 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   
-  // Get navigation items for current user role
-  const navigationItems = getNavigationForRole(userRole);
+  // Get navigation items filtered by user permissions
+  const navigationItems = getNavigationForPermissions(user);
   
   // Track which menu items are open
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());

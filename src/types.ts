@@ -1,6 +1,115 @@
 // User Types and Roles
-export type UserRole = 'super_admin'| 'managing_director' | 'department_head' |  'hr_manager'| 'administrator'| 'accountant' | 'employee';
+export type UserRole = 'admin' | 'ceo' | 'director' | 'hr_manager' | 'administrator' | 'accountant' | 'employee';
 export type Sector = 'construction' | 'engineering' | 'legal' | 'administration' | 'consulting' | 'other';
+
+// Permission Types - Granular permissions per module
+export type PermissionKey =
+  // Dashboard
+  | 'view_dashboard'
+  // Projects Module
+  | 'view_projects'
+  | 'add_projects'
+  | 'edit_projects'
+  | 'delete_projects'
+  | 'approve_projects'
+  // Users Module
+  | 'view_users'
+  | 'add_users'
+  | 'edit_users'
+  | 'delete_users'
+  // Departments Module
+  | 'view_departments'
+  | 'add_departments'
+  | 'edit_departments'
+  | 'delete_departments'
+  // Requests Module
+  | 'view_requests'
+  | 'add_requests'
+  | 'edit_requests'
+  | 'delete_requests'
+  | 'approve_requests'
+  // Payments Module
+  | 'view_payments'
+  | 'add_payments'
+  | 'edit_payments'
+  | 'delete_payments'
+  | 'approve_payments'
+  // Payroll Module
+  | 'view_payroll'
+  | 'add_payroll'
+  | 'edit_payroll'
+  | 'delete_payroll'
+  // Leave Module
+  | 'view_leave'
+  | 'add_leave'
+  | 'edit_leave'
+  | 'delete_leave'
+  | 'approve_leave'
+  // Reports Module
+  | 'view_reports'
+  // Audit Logs Module
+  | 'view_audit_logs'
+  // Events Module
+  | 'view_events'
+  | 'add_events'
+  | 'edit_events'
+  | 'delete_events'
+  // Approvals Module
+  | 'view_approvals'
+  | 'approve_approvals'
+  | 'add_approvers'
+  | 'manage_approvers'
+  // Settings Module
+  | 'view_settings'
+  | 'edit_settings'
+  // Team Module
+  | 'view_team'
+  | 'add_teams'
+  | 'edit_teams'
+  | 'delete_teams'
+  // Timesheets Module
+  | 'view_timesheets'
+  | 'add_timesheets'
+  | 'edit_timesheets'
+  | 'delete_timesheets'
+  // Performance Module
+  | 'view_performance'
+  | 'add_performance'
+  | 'edit_performance'
+  | 'delete_performance'
+  // Memos Module
+  | 'view_memos'
+  | 'add_memos'
+  | 'edit_memos'
+  | 'delete_memos';
+
+// Permission record type
+export type UserPermissions = Record<PermissionKey, boolean>;
+
+// Auth Types
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  notificationId: string | null;
+  token: string | null;
+  refreshToken: string | null;
+  currentAccount: CurrentAccount | null;
+}
+
+export interface CurrentAccount {
+  _id?: string;
+  email?: string;
+  name?: string;
+}
+
+export interface Permissions {
+  id: string;
+  key: string;
+  value: boolean;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface User {
   id: string;
@@ -11,35 +120,30 @@ export interface User {
   dob: string;
   gender: string;
   email: string;
-  mailAddresses: string[];
   role: UserRole;
-  emailVerified?: boolean;
   departmentId?: string;
   employeeId?: string;
+  position: string;
+  hireDate: string;
+  salary: number;
   avatar?: string;
   isActive: boolean;
+  permissions?: UserPermissions;
   createdAt: string;
   updatedAt: string;
 }
 
-// Shape returned by backend user endpoints
-export interface BackendUser {
-  _id: string;
+export interface ZitadelUser {
+  id: string;
+  email: string;
   firstName: string;
   lastName: string;
-  otherNames?: string;
-  email: string;
-  mailAddresses: string[];
-  phone?: string;
-  gender?: string;
-  dob?: string | null;
-  avatar?: string;
-  isActive: boolean;
-  status?: 'active' | 'inactive' | 'suspended' | string;
-  role?: UserRole;
-  createdAt?: string;
-  updatedAt?: string;
+  displayName: string;
+  preferredUsername?: string;
+  state?: string;
 }
+
+
 
 export interface Department {
   id: string;
@@ -60,30 +164,27 @@ export interface DepartmentUnit {
   isActive: boolean;
 }
 
-export interface Employee {
+
+export interface Approval {
   id: string;
   userId: string;
-  employeeNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  departmentId: string;
-  unitId?: string;
-  position: string;
-  hireDate: string;
-  salary: number;
-  status: 'active' | 'inactive' | 'terminated';
-  managerId?: string;
-  avatar?: string;
+  addedById?: string;
+  level: 'director' | 'ceo';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  canAddApprovers?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
 }
+
 
 export interface Project {
   id: string;
   name: string;
   code: string;
   departmentId: string;
-  departmentName?: string; // Optional field for display purposes
   managerId: string;
   budget: number;
   spent: number;
@@ -94,12 +195,11 @@ export interface Project {
   progress: number;
   description?: string;
   clientName?: string;
-  milestones: Milestone[];
-  tasks: Task[];
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
-  approvalDate?: string;
-  approvedBy?: string;
-  approvalComments?: string;
+  milestones?: Milestone[];
+  tasks?: Task[];
+  approvals?: Approval[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Milestone {
@@ -112,8 +212,9 @@ export interface Milestone {
   progress: number;
   budget: number;
   spent: number;
-  attachments?: string[];
-  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  tasks?: Task[];
 }
 
 export interface Task {
@@ -129,8 +230,8 @@ export interface Task {
   dueDate?: string;
   estimatedHours?: number;
   actualHours?: number;
-  attachments?: string[];
-  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LeaveRequest {
@@ -159,6 +260,104 @@ export interface Payslip {
   status: 'draft' | 'processed' | 'paid';
 }
 
+export interface Payroll {
+  id: string;
+  periodMonth: number;
+  periodYear: number;
+  status: 'draft' | 'pending_dept_head' | 'pending_admin_head' | 'pending_accountant' | 'approved' | 'rejected' | 'processed' | 'paid';
+  createdById?: string;
+  createdAt: string;
+  updatedAt: string;
+  entries?: PayrollEntry[];
+  approvals?: PayrollApproval[];
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+}
+
+export interface PayrollApproval {
+  id: string;
+  payrollId: string;
+  userId: string;
+  addedById?: string;
+  level: 'dept_head' | 'admin_head' | 'accountant';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  canAddApprovers?: boolean;
+}
+
+export interface PayrollEntry {
+  id: string;
+  payrollId: string;
+  userId: string;
+  baseSalary: number;
+  deductions: number;
+  allowances: number;
+  netSalary: number;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'employeeId' | 'position'>;
+  deductionApplications?: PayrollDeductionApplication[];
+  allowanceApplications?: PayrollAllowanceApplication[];
+}
+
+export interface Deduction {
+  id: string;
+  title: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  always: boolean;
+  amount?: number; // Fixed amount (nullable)
+  percent?: number; // Percentage (nullable)
+  global: boolean; // If true, applies to all users
+  createdAt: string;
+  updatedAt: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  applications?: PayrollDeductionApplication[];
+}
+
+export interface Allowance {
+  id: string;
+  title: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  always: boolean;
+  amount?: number; // Fixed amount (nullable)
+  percent?: number; // Percentage (nullable)
+  global: boolean; // If true, applies to all users
+  createdAt: string;
+  updatedAt: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  applications?: PayrollAllowanceApplication[];
+}
+
+export interface PayrollDeductionApplication {
+  id: string;
+  payrollEntryId: string;
+  deductionId: string;
+  sourceAmount: number; // Base amount used for calculation
+  calculatedAmount: number; // Final amount after percent calculation
+  appliedAt: string;
+  deduction?: Pick<Deduction, 'id' | 'title' | 'amount' | 'percent'>;
+}
+
+export interface PayrollAllowanceApplication {
+  id: string;
+  payrollEntryId: string;
+  allowanceId: string;
+  sourceAmount: number; // Base amount used for calculation
+  calculatedAmount: number; // Final amount after percent calculation
+  appliedAt: string;
+  allowance?: Pick<Allowance, 'id' | 'title' | 'amount' | 'percent'>;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -167,14 +366,7 @@ export interface Client {
   address: string;
 }
 
-export interface Revenue {
-  id: string;
-  projectId?: string;
-  clientId?: string;
-  amount: number;
-  date: string;
-  description?: string;
-}
+
 
 export interface Item {
   id: string;
@@ -186,13 +378,7 @@ export interface Item {
   totalPrice: number;
   specifications?: string;
 }
-// quantity survey
-export interface QuantitySurvey {
-  id: string;
-  projectId: string;
-  items: Item[];
-  totalAmount: number;
-}
+
 
 export interface Vendor {
   id: string;
@@ -209,91 +395,307 @@ export interface RequestForm {
   requestedBy: string; // Employee ID
   departmentId: string; // Department of requester
   type: 'office_supplies' | 'equipment' | 'travel' | 'training' | 'other';
-  currentStatus: 'pending_dept_head' | 'pending_admin_head' | 'approved' | 'rejected';
-  approvedByDeptHeadId?: string;
-  approvedByAdminId?: string;
-  rejectionReason?: string;
-  associatedPaymentId?: string;
+  status: 'pending_dept_head' | 'pending_admin_head' | 'approved' | 'rejected';
   requestDate: string;
   items?: Item[];
-  totalAmount?: number;
+  amount?: number;
+  currency?: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   category?: string;
   attachments?: string[];
-  comments?: string[];
+  comments?: RequestComment[];
+  approvals: RequestApproval[];
+  createdAt?: string;
+  updatedAt?: string;
+  requestedByUser?: Pick<User, 'id' | 'fullName' | 'email' | 'avatar'>;
+  department?: Pick<Department, 'id' | 'name' | 'code'>;
 }
+
+export interface RequestApproval {
+  id: string;
+  requestFormId: string;
+  userId: string;
+  addedById?: string;
+  level: 'dept_head' | 'admin_head';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  canAddApprovers?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+}
+
+export interface RequestComment {
+  id: string;
+  requestFormId: string;
+  userId: string;
+  content: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'avatar'>;
+}
+
+export type PaymentStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'partially_paid'
+  | 'paid'
+  | 'voided';
+
+export type PaymentSourceType = 'project' | 'requestForm' | 'payroll' | 'none';
+
+export interface PaymentSource {
+  type: PaymentSourceType;
+  projectId?: string;
+  requestFormId?: string;
+  payrollId?: string;
+}
+
+export interface PaymentItemSnapshot {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  currency?: string;
+  taxRate?: number;
+  taxAmount?: number;
+  total: number;
+  requestFormItemId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PaymentInstallment {
+  id: string;
+  dueDate: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'overdue' | 'voided';
+  paidAt?: string;
+  reference?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PaymentReconciliationStatus =
+  | 'unreconciled'
+  | 'partially_reconciled'
+  | 'reconciled';
 
 export interface Payment {
   id: string;
-  requestForms: RequestForm[]; // Link to RequestFormA for traceability
-  items: Item[];
-  total: number;
-  date: string;
-  status: 'pending' | 'approved' | 'paid' | 'failed' | 'cancelled';
-  paymentMethod?: 'bank_transfer' | 'check' | 'cash' | 'credit_card';
-  vendorId?: string;
-  approvedBy?: string; // Managing Director or authorized approver
-  approvedAt?: string;
-  paidBy?: string; // Accountant who processed the payment
-  paidAt?: string;
-  referenceNumber?: string;
-  notes?: string;
-  comments?: string[];
-
-}
-
-export interface Voucher {
-  id: string;
-  voucherNumber: string;
-  voucherDate: string;
-  voucherType: 'purchase' | 'sale' | 'payment' | 'receipt';
+  source: PaymentSource;
+  requestFormId?: string;
+  projectId?: string;
+  payrollId?: string;
+  project?: Pick<Project, 'id' | 'name' | 'code'>;
+  requestForm?: Pick<RequestForm, 'id' | 'name' | 'status'>;
+  payroll?: Pick<Payroll, 'id' | 'periodMonth' | 'periodYear' | 'status'>;
+  createdAt?: string;
+  updatedAt?: string;
+  createdById?: string;
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  submittedById?: string;
+  submittedBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  approverIds?: string[];
+  payeeId?: string;
+  payee?: Pick<User, 'id' | 'fullName' | 'email'>;
+  payerAccountId?: string;
+  currency: string;
+  exchangeRate?: number;
+  isForeignCurrency?: boolean;
+  amount: number;
+  taxAmount?: number;
   totalAmount: number;
+  fxAppliedAmount?: number;
+  balanceOutstanding?: number;
+  status: PaymentStatus;
+  method: 'bank_transfer' | 'check' | 'cash' | 'credit_card' | 'other';
+  paymentDate?: string;
+  dueDate?: string;
+  scheduledFor?: string;
+  notes?: string;
+  reference?: string;
+  tags?: string[];
+  requiresApproval?: boolean;
+  isDraft?: boolean;
+  isLocked?: boolean;
+  isArchived?: boolean;
+  isRecurring?: boolean;
+  recurrenceTemplateId?: string;
+  derivedFromRequestFormItems?: boolean;
+  requestFormItemIds?: string[];
+  items: PaymentItemSnapshot[];
+  installments?: PaymentInstallment[];
+  approvals?: PaymentApproval[];
+  auditLog?: Record<string, unknown>[];
+  attachments?: string[];
+  reconciliationStatus?: PaymentReconciliationStatus;
+  reconciliationDate?: string;
+  ledgerEntryIds?: string[];
+  lastReminderSentAt?: string;
+  cancellationReason?: string;
 }
 
-// internal memo
-export interface InternalMemo {
+export interface PaymentApproval {
   id: string;
-  message: string;
-  author: string;
-  users: User[];
-  departments: Department[];
-  attachments: string[];
+  paymentId: string;
+  userId: string;
+  addedById?: string;
+  level: 'accountant' | 'finance_manager' | 'ceo';
+  status: 'pending' | 'approved' | 'rejected';
+  actionDate?: string;
+  comments?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  canAddApprovers?: boolean;
+  user?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+  addedBy?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>;
+}
+// Audit Log Types
+export type AuditActionType = 
+  // Generic CRUD operations
+  | 'CREATE'
+  | 'READ'
+  | 'UPDATE'
+  | 'DELETE'
+  // Specific business actions
+  | 'USER_LOGIN'
+  | 'USER_LOGOUT'
+  | 'PASSWORD_RESET'
+  | 'PERMISSION_CHANGED'
+  | 'PROJECT_APPROVED'
+  | 'PROJECT_REJECTED'
+  | 'PROJECT_PAUSED'
+  | 'PROJECT_RESUMED'
+  | 'BUDGET_UPDATED'
+  | 'MILESTONE_COMPLETED'
+  | 'TASK_ASSIGNED'
+  | 'TASK_COMPLETED'
+  | 'PAYMENT_PROCESSED'
+  | 'PAYMENT_APPROVED'
+  | 'PAYMENT_REJECTED'
+  | 'LEAVE_REQUESTED'
+  | 'LEAVE_APPROVED'
+  | 'LEAVE_REJECTED'
+  | 'REQUEST_CREATED'
+  | 'REQUEST_APPROVED'
+  | 'REQUEST_REJECTED'
+  | 'REQUEST_COMMENT_ADDED'
+  | 'REQUEST_ATTACHMENT_ADDED'
+  | 'DEPARTMENT_UPDATED'
+  | 'UNIT_CREATED'
+  | 'REPORT_GENERATED'
+  | 'SETTING_CHANGED';
+
+export type AuditEntityType = 
+  | 'User'
+  | 'Department'
+  | 'DepartmentUnit'
+  | 'Project'
+  | 'Milestone'
+  | 'Task'
+  | 'Approval'
+  | 'LeaveRequest'
+  | 'Payslip'
+  | 'Payroll'
+  | 'PayrollEntry'
+  | 'Deduction'
+  | 'Allowance'
+  | 'PayrollDeductionApplication'
+  | 'PayrollAllowanceApplication'
+  | 'PayrollApproval'
+  | 'Payment'
+  | 'RequestForm'
+  | 'RequestApproval'
+  | 'RequestComment'
+  | 'Item'
+  | 'Vendor'
+  | 'Client'
+  | 'AuditLog'
+  | 'Memo'
+  | 'Team'
+  | 'System';
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  userSnapshot: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    departmentId?: string;
+  };
+  actionType: AuditActionType;
+  entityType: AuditEntityType;
+  entityId?: string;
+  description: string;
+  isSuccessful: boolean;
+  previousData?: Record<string, any> | null;
+  newData?: Record<string, any> | null;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: Date | string;
+  createdAt: Date | string;
 }
 
-// Navigation and Route Types
+// Events
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  tags: string[];
+  link?: string;
+  startDateTime: string;
+  endDateTime: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  units?: Pick<DepartmentUnit, 'id' | 'name' | 'departmentId'>[];
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Memos
+export interface Memo {
+  id: string;
+  title: string;
+  content: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  isActive: boolean;
+  expiresAt?: string;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>[];
+  departments?: Pick<Department, 'id' | 'name' | 'code'>[];
+  createdBy?: Pick<User, 'id' | 'fullName' | 'email'>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Teams
+export interface Team {
+  id: string;
+  title: string;
+  purpose?: string;
+  leaderId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  leader?: Pick<User, 'id' | 'fullName' | 'email' | 'role' | 'avatar'>;
+  users?: Pick<User, 'id' | 'fullName' | 'email' | 'role' | 'avatar' | 'position'>[];
+  tasks?: Pick<Task, 'id' | 'name' | 'status' | 'priority' | 'dueDate' | 'projectId'>[];
+}
+
+// Navigation Types
 export interface NavigationItem {
   id: string;
   label: string;
   icon: string;
   href?: string;
-  badge?: string | number;
+  permissions?: PermissionKey[]; // Required permissions to see this item
+  badge?: string;
   children?: NavigationItem[];
-  roles: UserRole[];
-}
-
-export interface RouteConfig {
-  path: string;
-  element: React.ComponentType;
-  roles: UserRole[];
-  title: string;
-}
-
-// Dashboard Data Types
-export interface DashboardStats {
-  totalProjects?: number;
-  activeProjects?: number;
-  totalEmployees?: number;
-  pendingApprovals?: number;
-  totalRevenue?: number;
-  monthlyExpenses?: number;
-  completedTasks?: number;
-  overdueTasks?: number;
-}
-
-export interface ChartData {
-  name: string;
-  value: number;
-  color?: string;
 }
 
 // API Response Types
@@ -304,144 +706,4 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
-// Auth Types
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean | null;
-  permissions: string[];
-}
-
-// Form Types
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface CreateUserForm {
-  name: string;
-  email: string;
-  role: UserRole;
-  departmentId?: string;
-  password: string;
-}
-
-export interface CreateProjectForm {
-  name: string;
-  code: string;
-  description?: string;
-  departmentId: string;
-  managerId: string;
-  startDate: string;
-  endDate: string;
-  budget: number;
-  clientName?: string;
-}
-
-// Filter and Search Types
-export interface ProjectFilters {
-  status?: string[];
-  departmentId?: string;
-  managerId?: string;
-  priority?: string[];
-  dateRange?: {
-    start: string;
-    end: string;
-  };
-}
-
-export interface EmployeeFilters {
-  departmentId?: string;
-  status?: string[];
-  position?: string;
-}
-
-// Notification Types
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  isRead: boolean;
-  createdAt: string;
-  actionUrl?: string;
-}
-
-// Approval Workflow Types
-export interface ApprovalAction {
-  id: string;
-  requestId: string;
-  requestType: 'leave_request' | 'procurement_request' | 'request_form' | 'payment';
-  approverId: string;
-  action: 'approve' | 'reject' | 'pending';
-  comments?: string;
-  actionDate: string;
-  level: 'department_head' | 'administrator' | 'managing_director';
-}
-
-export interface ApprovalSummary {
-  pendingLeaveRequests: number;
-  pendingProcurementRequests: number;
-  pendingRequestForms: number;
-  pendingPayments: number;
-  totalPending: number;
-}
-
-export interface RevenueStats {
-  totalRevenue: number;
-  yearToDateGrowth: number;
-  revenueByProject: {
-    name: string;
-    value: number;
-  }[];
-  revenueByClient: {
-    name: string;
-    value: number;
-  }[];
-  revenueTrends: {
-    month: string;
-    revenue: number;
-    expenses: number;
-    profit: number;
-  }[];
-}
-
-export interface IncomeExpenseComparison {
-  month: string;
-  income: number;
-  expenses: number;
-}
-
-// Update ApprovalStats interface
-export interface ApprovalStats {
-  pendingPayments: number;
-  pendingRequests: number;
-  pendingProcurements: number;
-  pendingLeaves: number;
-  pendingProjects: number;
-}
-
-export interface DepartmentFormData {
-  name: string;
-  code: string;
-  sector: Sector;
-  description: string;
-  headId: string;
-  isActive: boolean;
-}
-
-export interface UnitFormData {
-  name: string;
-  departmentId: string;
-  managerId: string;
-  isActive: boolean;
-}
