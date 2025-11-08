@@ -40,9 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-<<<<<<< HEAD
-=======
 
 /src/generated/prisma
->>>>>>> origin/role-permission-revamp
 /prisma/migrations
