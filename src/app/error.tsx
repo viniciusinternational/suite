@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -74,7 +75,7 @@ export default function Error({
               Try Again
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <a href="/">
+              <Link href="/">
                 <svg
                   className="mr-2 h-4 w-4"
                   fill="none"
@@ -90,7 +91,7 @@ export default function Error({
                   />
                 </svg>
                 Go to Homepage
-              </a>
+              </Link>
             </Button>
           </CardFooter>
         </Card>
