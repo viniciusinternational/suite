@@ -4,4 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
 };
 
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();
+
 export default nextConfig;
