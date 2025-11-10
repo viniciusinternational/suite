@@ -9,7 +9,11 @@ interface MemoFilters {
   priority?: string
 }
 
-export function useMemos(filters?: MemoFilters) {
+interface UseMemosOptions {
+  enabled?: boolean
+}
+
+export function useMemos(filters?: MemoFilters, options?: UseMemosOptions) {
   return useQuery({
     queryKey: ['memos', filters],
     queryFn: async () => {
@@ -21,6 +25,7 @@ export function useMemos(filters?: MemoFilters) {
       const res = await axios.get(`/memos?${params.toString()}`)
       return res.data.data as Memo[]
     },
+    enabled: options?.enabled ?? true,
   })
 }
 
