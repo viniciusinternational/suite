@@ -11,14 +11,17 @@ const createDeductionSchema = z.object({
 })
 
 // GET /api/payroll/user-deductions/[userId] - Get all deductions for a user
+type UserParams = { userId: string };
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<UserParams> }
 ) {
   try {
+    const { userId } = await context.params;
     const isActive = request.nextUrl.searchParams.get('isActive')
     
-    const where: any = { userId: params.userId }
+    const where: any = { userId }
     if (isActive !== null && isActive !== '') {
       where.isActive = isActive === 'true'
     }
@@ -59,9 +62,10 @@ export async function GET(
 // POST /api/payroll/user-deductions/[userId] - Create new deduction for user
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<UserParams> }
 ) {
   try {
+    const { userId: targetUserId } = await context.params;
     const body = await request.json()
     const data = createDeductionSchema.parse(body)
 
@@ -70,7 +74,7 @@ export async function POST(
 
     // Verify user exists
     const user = await prisma.user.findUnique({
-      where: { id: params.userId },
+      where: { id: targetUserId },
     })
 
     if (!user) {
@@ -83,7 +87,7 @@ export async function POST(
     // Create deduction
     const deduction = await prisma.userDeduction.create({
       data: {
-        userId: params.userId,
+        userId: targetUserId,
         name: data.name,
         amount: data.amount,
         isActive: data.isActive,

@@ -3,16 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { paymentWithRelations, serializePayment } from '../utils';
 
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
+type RouteParams = { id: string };
 
-export async function GET(_request: NextRequest, { params }: RouteContext) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<RouteParams> }
+) {
   try {
+    const { id } = await context.params;
     const payment = await prisma.payment.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: paymentWithRelations.include,
     });
 

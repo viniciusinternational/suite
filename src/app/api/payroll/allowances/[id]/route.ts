@@ -18,13 +18,16 @@ const updateAllowanceSchema = z.object({
 })
 
 // GET /api/payroll/allowances/[id] - Get single allowance
+type AllowanceParams = { id: string };
+
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<AllowanceParams> }
 ) {
   try {
+    const { id } = await context.params;
     const allowance = await prisma.allowance.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         users: {
           select: {
@@ -72,9 +75,10 @@ export async function GET(
 // PATCH /api/payroll/allowances/[id] - Update allowance
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<AllowanceParams> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json()
     const data = updateAllowanceSchema.parse(body)
 
@@ -83,7 +87,7 @@ export async function PATCH(
 
     // Get existing allowance for audit log
     const existingAllowance = await prisma.allowance.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { users: true },
     })
 
@@ -113,20 +117,20 @@ export async function PATCH(
     // Handle user associations
     if (data.userIds !== undefined) {
       updateData.users = {
-        set: data.userIds.map((id) => ({ id })),
+        set: data.userIds.map((userId) => ({ id: userId })),
       }
     }
 
     // Handle department associations
     if (data.departmentIds !== undefined) {
       updateData.departments = {
-        set: data.departmentIds.map((id) => ({ id })),
+        set: data.departmentIds.map((departmentId) => ({ id: departmentId })),
       }
     }
 
     // Update allowance
     const updatedAllowance = await prisma.allowance.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         users: {
@@ -196,15 +200,16 @@ export async function PATCH(
 // DELETE /api/payroll/allowances/[id] - Delete allowance
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<AllowanceParams> }
 ) {
   try {
+    const { id } = await context.params;
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
     // Get existing allowance for audit log
     const existingAllowance = await prisma.allowance.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingAllowance) {
@@ -216,7 +221,7 @@ export async function DELETE(
 
     // Delete allowance
     await prisma.allowance.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Audit log
@@ -226,7 +231,7 @@ export async function DELETE(
         userSnapshot,
         actionType: 'DELETE',
         entityType: 'Allowance',
-        entityId: params.id,
+        entityId: id,
         description: `Deleted allowance "${existingAllowance.title}"`,
         previousData: existingAllowance as any,
         newData: null,

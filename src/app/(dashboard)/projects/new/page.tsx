@@ -55,7 +55,9 @@ const createProjectSchema = z.object({
   clientName: z.string().optional(),
   departmentId: z.string().min(1, 'Department is required'),
   managerId: z.string().min(1, 'Project manager is required'),
-  budget: z.coerce.number().positive('Budget must be positive'),
+  budget: z
+    .number()
+    .min(0, 'Budget must be zero or greater'),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
@@ -65,7 +67,7 @@ const milestoneSchema = z.object({
   name: z.string().min(3, 'Milestone name must be at least 3 characters'),
   description: z.string().optional(),
   dueDate: z.string().min(1, 'Due date is required'),
-  budget: z.coerce.number().min(0, 'Budget must be 0 or greater').default(0),
+  budget: z.coerce.number().min(0, 'Budget must be 0 or greater'),
 });
 
 type CreateProjectFormData = z.infer<typeof createProjectSchema>;
@@ -102,8 +104,19 @@ export default function NewProjectPage() {
     enabled: !!selectedDepartment,
   });
 
+  const createProjectResolver = zodResolver<
+    CreateProjectFormData,
+    typeof createProjectSchema,
+    CreateProjectFormData
+  >(createProjectSchema);
+  const milestoneResolver = zodResolver<
+    MilestoneFormData,
+    typeof milestoneSchema,
+    MilestoneFormData
+  >(milestoneSchema);
+
   const form = useForm<CreateProjectFormData>({
-    resolver: zodResolver(createProjectSchema),
+    resolver: createProjectResolver,
     defaultValues: {
       name: '',
       code: '',
@@ -119,7 +132,7 @@ export default function NewProjectPage() {
   });
 
   const milestoneForm = useForm<MilestoneFormData>({
-    resolver: zodResolver(milestoneSchema),
+    resolver: milestoneResolver,
     defaultValues: {
       name: '',
       description: '',
@@ -709,7 +722,10 @@ export default function NewProjectPage() {
                           type="number"
                           placeholder="0"
                           {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === '' ? 0 : Number(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

@@ -11,11 +11,14 @@ const updateAllowanceSchema = z.object({
 })
 
 // PATCH /api/payroll/allowance/[id] - Update allowance
+type UserAllowanceParams = { id: string };
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<UserAllowanceParams> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json()
     const data = updateAllowanceSchema.parse(body)
 
@@ -24,7 +27,7 @@ export async function PATCH(
 
     // Get existing allowance for audit log
     const existingAllowance = await prisma.userAllowance.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     })
 
@@ -37,7 +40,7 @@ export async function PATCH(
 
     // Update allowance
     const updatedAllowance = await prisma.userAllowance.update({
-      where: { id: params.id },
+      where: { id },
       data,
       include: {
         user: {
@@ -98,15 +101,16 @@ export async function PATCH(
 // DELETE /api/payroll/allowance/[id] - Delete allowance
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<UserAllowanceParams> }
 ) {
   try {
+    const { id } = await context.params;
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
     // Get existing allowance for audit log
     const existingAllowance = await prisma.userAllowance.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     })
 
@@ -119,7 +123,7 @@ export async function DELETE(
 
     // Delete allowance
     await prisma.userAllowance.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Audit log
@@ -129,7 +133,7 @@ export async function DELETE(
         userSnapshot,
         actionType: 'DELETE',
         entityType: 'UserAllowance',
-        entityId: params.id,
+        entityId: id,
         description: `Deleted allowance "${existingAllowance.name}"`,
         previousData: existingAllowance as any,
         newData: null,

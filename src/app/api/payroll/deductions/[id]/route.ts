@@ -18,13 +18,16 @@ const updateDeductionSchema = z.object({
 })
 
 // GET /api/payroll/deductions/[id] - Get single deduction
+type DeductionParams = { id: string };
+
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<DeductionParams> }
 ) {
   try {
+    const { id } = await context.params;
     const deduction = await prisma.deduction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         users: {
           select: {
@@ -72,9 +75,10 @@ export async function GET(
 // PATCH /api/payroll/deductions/[id] - Update deduction
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<DeductionParams> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json()
     const data = updateDeductionSchema.parse(body)
 
@@ -83,7 +87,7 @@ export async function PATCH(
 
     // Get existing deduction for audit log
     const existingDeduction = await prisma.deduction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { users: true },
     })
 
@@ -113,20 +117,20 @@ export async function PATCH(
     // Handle user associations
     if (data.userIds !== undefined) {
       updateData.users = {
-        set: data.userIds.map((id) => ({ id })),
+        set: data.userIds.map((userId) => ({ id: userId })),
       }
     }
 
     // Handle department associations
     if (data.departmentIds !== undefined) {
       updateData.departments = {
-        set: data.departmentIds.map((id) => ({ id })),
+        set: data.departmentIds.map((departmentId) => ({ id: departmentId })),
       }
     }
 
     // Update deduction
     const updatedDeduction = await prisma.deduction.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         users: {
@@ -196,15 +200,16 @@ export async function PATCH(
 // DELETE /api/payroll/deductions/[id] - Delete deduction
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<DeductionParams> }
 ) {
   try {
+    const { id } = await context.params;
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
     // Get existing deduction for audit log
     const existingDeduction = await prisma.deduction.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingDeduction) {
@@ -216,7 +221,7 @@ export async function DELETE(
 
     // Delete deduction
     await prisma.deduction.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Audit log
@@ -226,7 +231,7 @@ export async function DELETE(
         userSnapshot,
         actionType: 'DELETE',
         entityType: 'Deduction',
-        entityId: params.id,
+        entityId: id,
         description: `Deleted deduction "${existingDeduction.title}"`,
         previousData: existingDeduction as any,
         newData: null,

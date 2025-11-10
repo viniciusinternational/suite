@@ -17,14 +17,17 @@ const updatePayrollSchema = z.object({
   ).optional(),
 })
 
+type RouteParams = { id: string };
+
 // GET /api/payroll/[id] - Get single payroll
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<RouteParams> }
 ) {
   try {
+    const { id } = await context.params;
     const payroll = await prisma.payroll.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         entries: {
           include: {
@@ -133,9 +136,10 @@ export async function GET(
 // PATCH /api/payroll/[id] - Update payroll
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<RouteParams> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json()
     const data = updatePayrollSchema.parse(body)
 
@@ -144,7 +148,7 @@ export async function PATCH(
 
     // Get existing payroll
     const existingPayroll = await prisma.payroll.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { entries: true },
     })
 
@@ -175,7 +179,7 @@ export async function PATCH(
 
       // Delete existing entries and create new ones
       await prisma.payrollEntry.deleteMany({
-        where: { payrollId: params.id },
+        where: { payrollId: id },
       })
 
       updateData.entries = {
@@ -185,7 +189,7 @@ export async function PATCH(
 
     // Update payroll
     const updatedPayroll = await prisma.payroll.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         entries: {
@@ -211,7 +215,7 @@ export async function PATCH(
         userSnapshot,
         actionType: 'UPDATE',
         entityType: 'Payroll',
-        entityId: updatedPayroll.id,
+        entityId: id,
         description: `Updated payroll ${updatedPayroll.id}`,
         previousData: existingPayroll as any,
         newData: updatedPayroll as any,
@@ -257,15 +261,16 @@ export async function PATCH(
 // DELETE /api/payroll/[id] - Delete payroll
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<RouteParams> }
 ) {
   try {
+    const { id } = await context.params;
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
     // Get existing payroll for audit log
     const existingPayroll = await prisma.payroll.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { entries: true },
     })
 
@@ -278,7 +283,7 @@ export async function DELETE(
 
     // Delete payroll (entries will be deleted via cascade)
     await prisma.payroll.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Audit log
@@ -288,8 +293,8 @@ export async function DELETE(
         userSnapshot,
         actionType: 'DELETE',
         entityType: 'Payroll',
-        entityId: params.id,
-        description: `Deleted payroll ${params.id}`,
+        entityId: id,
+        description: `Deleted payroll ${id}`,
         previousData: existingPayroll as any,
         newData: null,
         ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,

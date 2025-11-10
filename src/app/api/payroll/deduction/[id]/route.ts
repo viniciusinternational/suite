@@ -11,11 +11,14 @@ const updateDeductionSchema = z.object({
 })
 
 // PATCH /api/payroll/deduction/[id] - Update deduction
+type UserDeductionParams = { id: string };
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<UserDeductionParams> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json()
     const data = updateDeductionSchema.parse(body)
 
@@ -24,7 +27,7 @@ export async function PATCH(
 
     // Get existing deduction for audit log
     const existingDeduction = await prisma.userDeduction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     })
 
@@ -37,7 +40,7 @@ export async function PATCH(
 
     // Update deduction
     const updatedDeduction = await prisma.userDeduction.update({
-      where: { id: params.id },
+      where: { id },
       data,
       include: {
         user: {
@@ -98,15 +101,16 @@ export async function PATCH(
 // DELETE /api/payroll/deduction/[id] - Delete deduction
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<UserDeductionParams> }
 ) {
   try {
+    const { id } = await context.params;
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
     // Get existing deduction for audit log
     const existingDeduction = await prisma.userDeduction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { user: true },
     })
 
@@ -119,7 +123,7 @@ export async function DELETE(
 
     // Delete deduction
     await prisma.userDeduction.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Audit log
@@ -129,7 +133,7 @@ export async function DELETE(
         userSnapshot,
         actionType: 'DELETE',
         entityType: 'UserDeduction',
-        entityId: params.id,
+        entityId: id,
         description: `Deleted deduction "${existingDeduction.name}"`,
         previousData: existingDeduction as any,
         newData: null,
