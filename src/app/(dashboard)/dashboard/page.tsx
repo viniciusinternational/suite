@@ -44,6 +44,11 @@ export default function DashboardPage() {
     )
   }
 
+  const {
+    data: memos = [],
+    isLoading: memosLoading,
+  } = useMemos({ isActive: true }, { enabled: !!user })
+
   if (!user) return null
 
   const pendingRequestsCount = requests.length
