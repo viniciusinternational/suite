@@ -23,19 +23,19 @@ export default function DashboardPage() {
   const [editingMemo, setEditingMemo] = useState<Memo | null>(null)
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null)
 
+  // Fetch memos for the user
+  const { data: memos = [], isLoading: memosLoading } = useMemos({ isActive: true })
+
   if (!user) return null
 
   // Check if user can add memos
-  const canAddMemo = user && hasPermission(user, 'add_memos')
+  const canAddMemo = hasPermission(user, 'add_memos')
   
   // Check if user can add events
-  const canAddEvent = user && hasPermission(user, 'add_events')
+  const canAddEvent = hasPermission(user, 'add_events')
   
   // Check if user can edit memos
-  const canEditMemo = user && hasPermission(user, 'edit_memos')
-
-  // Fetch memos for the user
-  const { data: memos = [], isLoading: memosLoading } = useMemos({ isActive: true })
+  const canEditMemo = hasPermission(user, 'edit_memos')
 
   const handleMemoSuccess = () => {
     setMemoDialogOpen(false)

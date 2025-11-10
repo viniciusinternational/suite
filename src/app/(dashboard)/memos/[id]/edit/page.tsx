@@ -18,15 +18,15 @@ export default function EditMemoPage() {
 
   if (!user || !hasPermission(user, 'edit_memos')) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
-          <p className="text-gray-600 mt-2">You don't have permission to edit memos.</p>
-          <Button onClick={() => router.push('/memos')} className="mt-4">
-            Back to Memos
-          </Button>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
+            <p className="text-gray-600 mt-2">You don&apos;t have permission to edit memos.</p>
+            <Button onClick={() => router.push('/memos')} className="mt-4">
+              Back to Memos
+            </Button>
+          </div>
         </div>
-      </div>
     )
   }
 
@@ -40,15 +40,15 @@ export default function EditMemoPage() {
 
   if (!memo) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Memo Not Found</h2>
-          <p className="text-gray-600 mt-2">The memo you're looking for doesn't exist.</p>
-          <Button onClick={() => router.push('/memos')} className="mt-4">
-            Back to Memos
-          </Button>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Memo Not Found</h2>
+            <p className="text-gray-600 mt-2">The memo you&apos;re looking for doesn&apos;t exist.</p>
+            <Button onClick={() => router.push('/memos')} className="mt-4">
+              Back to Memos
+            </Button>
+          </div>
         </div>
-      </div>
     )
   }
 
