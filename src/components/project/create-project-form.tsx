@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateProject } from '@/hooks/use-projects';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, FolderKanban, Building2, Calendar } from 'lucide-react';
 
 // Validation schema
 const createProjectSchema = z.object({
