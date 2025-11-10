@@ -335,23 +335,22 @@ export function TaskForm({
                 </FormItem>
               )}
             />
-          </div>
-        </form>
-      </Form>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button type="button" variant="outline" onClick={onCancel} className="gap-2">
-            <X className="h-4 w-4" />
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting} className="gap-2">
-            <Plus className="h-4 w-4" />
-            {isSubmitting ? 'Saving...' : 'Add'}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
-}
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onCancel} className="gap-2">
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {isSubmitting ? 'Saving...' : 'Add'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    );
+  }
 

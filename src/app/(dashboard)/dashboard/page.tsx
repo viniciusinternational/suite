@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EventCalendar } from '@/components/dashboard/event-calendar'
@@ -11,7 +11,6 @@ import { MemoList } from '@/components/memo/memo-list'
 import { MemoForm } from '@/components/memo/memo-form'
 import { EventForm } from '@/components/event/event-form'
 import { useMemos } from '@/hooks/use-memos'
-import { useEvents } from '@/hooks/use-events'
 import { hasPermission } from '@/lib/permissions'
 import { Plus, Bell } from 'lucide-react'
 import type { Memo, Event as AppEvent } from '@/types'
@@ -23,6 +22,11 @@ export default function DashboardPage() {
   const [editingMemo, setEditingMemo] = useState<Memo | null>(null)
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null)
 
+  const {
+    data: memos = [],
+    isLoading: memosLoading,
+  } = useMemos({ isActive: true })
+
   if (!user) return null
 
   // Check if user can add memos
@@ -33,9 +37,6 @@ export default function DashboardPage() {
   
   // Check if user can edit memos
   const canEditMemo = user && hasPermission(user, 'edit_memos')
-
-  // Fetch memos for the user
-  const { data: memos = [], isLoading: memosLoading } = useMemos({ isActive: true })
 
   const handleMemoSuccess = () => {
     setMemoDialogOpen(false)
