@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,10 +22,8 @@ import {
 } from '@/components/ui/table'
 import { useCreatePayroll, useUpdatePayroll } from '@/hooks/use-payrolls'
 import { useUsers } from '@/hooks/use-users'
-import { useUserDeductions } from '@/hooks/use-user-deductions'
-import { useUserAllowances } from '@/hooks/use-user-allowances'
 import { Loader2 } from 'lucide-react'
-import type { Payroll, PayrollEntry } from '@/types'
+import type { Payroll } from '@/types'
 
 interface PayrollFormProps {
   payroll?: Payroll | null
@@ -84,14 +82,7 @@ export function PayrollForm({ payroll, open, onOpenChange, onSuccess }: PayrollF
     }
   }, [payroll, open, currentMonth, currentYear])
 
-  // Auto-populate entries when users are loaded and form is opened (new payroll only)
-  useEffect(() => {
-    if (!isEditMode && open && users.length > 0 && entries.length === 0 && !isLoadingDefaults) {
-      loadDefaults()
-    }
-  }, [users, open, isEditMode, entries.length, isLoadingDefaults])
-
-  const loadDefaults = async () => {
+  const loadDefaults = useCallback(async () => {
     setIsLoadingDefaults(true)
     try {
       const newEntries: PayrollEntryForm[] = []
@@ -135,7 +126,14 @@ export function PayrollForm({ payroll, open, onOpenChange, onSuccess }: PayrollF
     } finally {
       setIsLoadingDefaults(false)
     }
-  }
+  }, [users])
+
+  // Auto-populate entries when users are loaded and form is opened (new payroll only)
+  useEffect(() => {
+    if (!isEditMode && open && users.length > 0 && entries.length === 0 && !isLoadingDefaults) {
+      loadDefaults()
+    }
+  }, [users, open, isEditMode, entries.length, isLoadingDefaults, loadDefaults])
 
   const updateEntry = (userId: string, field: keyof PayrollEntryForm, value: number) => {
     setEntries((prev) =>

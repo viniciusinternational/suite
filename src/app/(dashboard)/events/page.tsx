@@ -24,15 +24,14 @@ export default function EventsPage() {
   const deleteMutation = useDeleteEvent()
 
   // Calculate analytics
-  const now = new Date()
-  const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay())
-  startOfWeek.setHours(0, 0, 0, 0)
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 7)
-
   const analytics = useMemo(() => {
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 7)
+
     const upcoming = events.filter((ev) => new Date(ev.startDateTime) > now)
     const past = events.filter((ev) => new Date(ev.endDateTime) < now)
     const thisWeek = events.filter((ev) => {
@@ -46,7 +45,7 @@ export default function EventsPage() {
       past: past.length,
       thisWeek: thisWeek.length,
     }
-  }, [events, now, startOfWeek, endOfWeek])
+  }, [events])
 
   const isMutating = deleteMutation.isPending
 

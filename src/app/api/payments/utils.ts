@@ -8,13 +8,7 @@ import type {
   PaymentStatus,
 } from '@/types';
 import { prisma } from '@/lib/prisma';
-import {
-  paymentStatusValues,
-  paymentMethodValues,
-  paymentSourceValues,
-  paymentApprovalStatusValues,
-  paymentInstallmentStatusValues,
-} from '@/constants/payments';
+import { paymentSourceValues, paymentInstallmentStatusValues } from '@/constants/payments';
 
 export const paymentItemSchema = z.object({
   id: z.string().optional(),
@@ -128,7 +122,6 @@ type NormalizedPaymentItem = {
   total: number;
   requestFormItemId?: string;
   metadata?: Prisma.JsonValue;
-  amountBeforeTax: number;
 };
 
 export type NormalizedInstallment = {
@@ -154,7 +147,7 @@ export function normalizePaymentItems(
       (item.taxRate != null ? baseAmount * (item.taxRate > 1 ? item.taxRate / 100 : item.taxRate) : 0);
     const total = item.total ?? baseAmount + taxAmount;
 
-    return {
+    const normalizedItem: NormalizedPaymentItem = {
       description: item.description,
       quantity,
       unitPrice,
@@ -164,13 +157,15 @@ export function normalizePaymentItems(
       total,
       requestFormItemId: item.requestFormItemId,
       metadata: item.metadata ?? null,
-      amountBeforeTax: total - taxAmount,
-    };
+    }
+
+    return normalizedItem;
   });
 
   const totals = normalized.reduce(
     (acc, item) => {
-      acc.amount += item.amountBeforeTax;
+      const amountBeforeTax = item.total - (item.taxAmount ?? 0);
+      acc.amount += amountBeforeTax;
       acc.taxAmount += item.taxAmount ?? 0;
       acc.totalAmount += item.total;
       return acc;
@@ -179,7 +174,7 @@ export function normalizePaymentItems(
   );
 
   return {
-    items: normalized.map(({ amountBeforeTax, ...rest }) => rest),
+    items: normalized,
     totals,
     requestFormItemIds: normalized
       .map(item => item.requestFormItemId)

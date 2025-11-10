@@ -12,7 +12,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  Menu,
   Plus,
   HelpCircle
 } from 'lucide-react';

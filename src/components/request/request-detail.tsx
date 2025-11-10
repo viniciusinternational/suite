@@ -8,7 +8,7 @@ import { RequestApproval } from '@/components/request/request-approval';
 import { RequestComments } from '@/components/request/request-comments';
 import { RequestAttachments } from '@/components/request/request-attachments';
 import type { RequestForm } from '@/types';
-import { FileText, Building2, User, Calendar, DollarSign, Package, Edit } from 'lucide-react';
+import { FileText, User, DollarSign, Package, Edit } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
 interface RequestDetailProps {

@@ -8,8 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Code } from 'lucide-react';
-import type { PermissionKey } from '@/types';
-
 interface PermissionsEditorProps {
   value?: Record<string, boolean>;
   onChange: (permissions: Record<string, boolean>) => void;

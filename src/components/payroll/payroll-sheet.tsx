@@ -250,6 +250,29 @@ export function PayrollSheet({
     [entries]
   )
 
+  const monthOptions = useMemo(
+    () => [
+      { value: 1, label: 'January' },
+      { value: 2, label: 'February' },
+      { value: 3, label: 'March' },
+      { value: 4, label: 'April' },
+      { value: 5, label: 'May' },
+      { value: 6, label: 'June' },
+      { value: 7, label: 'July' },
+      { value: 8, label: 'August' },
+      { value: 9, label: 'September' },
+      { value: 10, label: 'October' },
+      { value: 11, label: 'November' },
+      { value: 12, label: 'December' },
+    ],
+    []
+  )
+
+  const yearOptions = useMemo(() => {
+    const startYear = periodYear - 2
+    return Array.from({ length: 5 }, (_, i) => startYear + i)
+  }, [periodYear])
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -268,6 +291,52 @@ export function PayrollSheet({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:gap-4">
+          <div className="flex flex-col gap-1">
+            <Label>Month</Label>
+            <Select
+              value={String(periodMonth)}
+              onValueChange={(value) => onPeriodChange(Number(value), periodYear)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={String(month.value)}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label>Year</Label>
+            <Select
+              value={String(periodYear)}
+              onValueChange={(value) => onPeriodChange(periodMonth, Number(value))}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="text-sm text-gray-500">
+          Showing payroll for {monthOptions.find((m) => m.value === periodMonth)?.label}{' '}
+          {periodYear}
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
         <div>

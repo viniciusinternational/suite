@@ -49,7 +49,7 @@ function formatCurrency(amount: number, currency: string) {
       currency,
       maximumFractionDigits: 2,
     }).format(amount);
-  } catch (error) {
+  } catch {
     return `${currency} ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   }
 }

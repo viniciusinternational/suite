@@ -22,7 +22,6 @@ import {
   DollarSign,
   UserCheck,
   Edit,
-  Loader2,
 } from 'lucide-react';
 
 export default function UserDetailsPage() {

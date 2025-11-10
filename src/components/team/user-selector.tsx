@@ -1,9 +1,8 @@
 'use client';
 
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 import axios from '@/lib/axios'
 import type { User } from '@/types'
 import { Search, X } from 'lucide-react'
@@ -80,7 +79,13 @@ export function UserSelector({
               />
               <div className="flex items-center gap-2 flex-1">
                 {user.avatar && (
-                  <img src={user.avatar} alt={user.fullName} className="w-6 h-6 rounded-full" />
+                  <Image
+                    src={user.avatar}
+                    alt={user.fullName}
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full object-cover"
+                  />
                 )}
                 <div className="flex-1">
                   <span className="text-sm font-medium">{user.fullName}</span>

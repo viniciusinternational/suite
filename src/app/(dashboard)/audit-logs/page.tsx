@@ -80,7 +80,7 @@ const ACTION_TYPES: AuditActionType[] = [
 const PAGE_SIZES = [10, 25, 50, 100];
 
 export default function AuditLogsPage() {
-  const { user } = useAuthGuard(['view_audit_logs']);
+  useAuthGuard(['view_audit_logs']);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');

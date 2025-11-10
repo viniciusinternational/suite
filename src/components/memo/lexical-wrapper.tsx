@@ -23,8 +23,6 @@ import {
   FORMAT_TEXT_COMMAND,
   UNDO_COMMAND,
   REDO_COMMAND,
-  $wrapNodes,
-  $createTextNode,
 } from 'lexical';
 import {
   $createHeadingNode,
@@ -395,7 +393,6 @@ function OnChangePluginHandler({ onChange }: { onChange: (html: string) => void 
     <OnChangePlugin
       onChange={(editorState: EditorState) => {
         editorState.read(() => {
-          const root = $getRoot();
           const htmlString = $generateHtmlFromNodes(editor, null);
           onChange(htmlString);
         });

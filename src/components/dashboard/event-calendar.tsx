@@ -42,7 +42,7 @@ export function EventCalendar({ onAddEvent, canAddEvent = false }: Props) {
     return { start: start.toISOString(), end: end.toISOString() }
   }, [view, date])
 
-  const { data: events = [], isLoading } = useEvents({
+  const { data: events = [] } = useEvents({
     start: dateRange.start,
     end: dateRange.end,
   })

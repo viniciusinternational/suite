@@ -8,7 +8,7 @@ import { FileText, FolderKanban, Briefcase, Clock, Wallet, CreditCard } from 'lu
 
 export default function ApprovalsPage() {
   useAuthGuard(['view_approvals']);
-  const { data: pendingApprovals = [], isLoading } = usePendingApprovals();
+  const { data: pendingApprovals = [] } = usePendingApprovals();
 
   // Calculate statistics
   const stats = {

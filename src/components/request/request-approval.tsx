@@ -33,7 +33,6 @@ export function RequestApproval({ request, onApprovalChange }: RequestApprovalPr
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
-  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [approvalLevel, setApprovalLevel] = useState<'dept_head' | 'admin_head' | null>(null);
   const canAddApproverPermission = hasPermission(user ?? null, 'add_approvers') || hasPermission(user ?? null, 'manage_approvers');
 
@@ -116,13 +115,11 @@ export function RequestApproval({ request, onApprovalChange }: RequestApprovalPr
 
   const openApproveDialog = (level: 'dept_head' | 'admin_head') => {
     setApprovalLevel(level);
-    setActionType('approve');
     setApprovalDialogOpen(true);
   };
 
   const openRejectDialog = (level: 'dept_head' | 'admin_head') => {
     setApprovalLevel(level);
-    setActionType('reject');
     setRejectDialogOpen(true);
   };
 

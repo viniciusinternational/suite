@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { DeductionForm } from '@/components/payroll/deduction-form'
 
 export default function CreateDeductionPage() {

@@ -1,4 +1,4 @@
-import type { NavigationItem, PermissionKey } from '@/types';
+import type { NavigationItem } from '@/types';
 import { hasAnyPermission } from '@/lib/permissions';
 import type { User } from '@/types';
 

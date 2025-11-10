@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RequestDetail } from '@/components/request/request-detail';
 import { useRequest } from '@/hooks/use-requests';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function RequestDetailsPage() {
   useAuthGuard(['view_requests']);

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -169,7 +170,13 @@ export function TeamForm({ team, onSuccess }: Props) {
                   />
                   <div className="flex items-center gap-2 flex-1">
                     {u.avatar && (
-                      <img src={u.avatar} alt={u.fullName} className="w-6 h-6 rounded-full" />
+                      <Image
+                        src={u.avatar}
+                        alt={u.fullName}
+                        width={24}
+                        height={24}
+                        className="h-6 w-6 rounded-full object-cover"
+                      />
                     )}
                     <span className="text-sm">{u.fullName}</span>
                     <span className="text-xs text-gray-500">({u.position})</span>

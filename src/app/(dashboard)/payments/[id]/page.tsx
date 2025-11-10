@@ -17,7 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import type { Payment } from '@/types';
 import { PaymentItemModal, type PaymentItemFormValues } from '@/components/payment/payment-item-modal';
 import { PaymentApproval } from '@/components/payment/payment-approval';
 import { usePayment } from '@/hooks/use-payments';

@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -66,8 +65,6 @@ export function PayrollTable({
   onView,
   isLoading = false,
 }: PayrollTableProps) {
-  const router = useRouter()
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',

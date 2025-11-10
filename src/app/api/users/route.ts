@@ -24,8 +24,6 @@ const createUserSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-const updateUserSchema = createUserSchema.partial();
-
 // GET /api/users - List all users with filters
 export async function GET(request: NextRequest) {
   try {

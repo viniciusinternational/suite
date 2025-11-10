@@ -1,12 +1,12 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import type { Team } from '@/types'
-import { Users, UserCheck, Calendar, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { Users, UserCheck, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface TeamDetailProps {

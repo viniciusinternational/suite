@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -12,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Trash2, Eye, Plus } from 'lucide-react'
+import { Edit, Trash2, Eye } from 'lucide-react'
 import { useDeductions, useDeleteDeduction } from '@/hooks/use-deductions'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { hasPermission } from '@/lib/permissions'

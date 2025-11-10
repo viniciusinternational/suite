@@ -38,11 +38,7 @@ import {
   Loader2,
   AlertCircle,
   User,
-  Mail,
-  Phone,
-  Calendar,
   Building2,
-  DollarSign,
 } from 'lucide-react';
 
 // Validation schema

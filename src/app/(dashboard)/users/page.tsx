@@ -48,7 +48,6 @@ import {
   Trash2,
   UserPlus,
   Save,
-  ArrowLeft,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -157,11 +156,6 @@ export default function UsersPage() {
     const now = new Date();
     const years = now.getFullYear() - hire.getFullYear();
     return years;
-  };
-
-  const openUserDetail = (user: User) => {
-    setSelectedUser(user);
-    setIsDetailOpen(true);
   };
 
   const handleEditUser = async () => {

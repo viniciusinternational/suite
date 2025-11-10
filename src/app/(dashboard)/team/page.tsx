@@ -10,9 +10,9 @@ import { TeamForm } from '@/components/team/team-form'
 import { TeamTable } from '@/components/team/team-table'
 import { TeamDetail } from '@/components/team/team-detail'
 import { useDeleteTeam, useTeams } from '@/hooks/use-teams'
-import { useAddUsersToTeam, useRemoveUserFromTeam } from '@/hooks/use-team-users'
+import { useRemoveUserFromTeam } from '@/hooks/use-team-users'
 import type { Team } from '@/types'
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,6 @@ export default function TeamPage() {
 
   const { data: teams = [] } = useTeams({ q: search || undefined })
   const deleteMutation = useDeleteTeam()
-  const addUsersMutation = useAddUsersToTeam(viewing?.id || '')
   const removeUserMutation = useRemoveUserFromTeam(viewing?.id || '')
 
   const handleView = (team: Team) => {
@@ -61,18 +60,6 @@ export default function TeamPage() {
       deleteMutation.mutate(teamToDelete)
       setTeamToDelete(null)
       setIsDeleteDialogOpen(false)
-    }
-  }
-
-  const handleAddUsers = async (userIds: string[]) => {
-    if (viewing?.id && userIds.length > 0) {
-      await addUsersMutation.mutateAsync({ userIds })
-      // Refresh team data
-      setIsDetailOpen(false)
-      setTimeout(() => {
-        setViewing(teams.find((t) => t.id === viewing.id) || null)
-        setIsDetailOpen(true)
-      }, 100)
     }
   }
 

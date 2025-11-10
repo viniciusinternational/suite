@@ -5,17 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Building2,
-  User,
-  Calendar,
-  DollarSign,
-  Clock,
-  TrendingUp,
-  Flag,
-  CheckCircle2,
-  AlertCircle,
-} from 'lucide-react';
+import { Building2, User, Calendar, DollarSign, Clock, Flag, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { Project } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
@@ -27,7 +17,7 @@ interface ProjectInfoCardProps {
 
 export function ProjectInfoCard({ project, isLoading }: ProjectInfoCardProps) {
   // Fetch analytics
-  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+  const { data: analyticsData } = useQuery({
     queryKey: ['project', project?.id, 'analytics'],
     queryFn: async () => {
       if (!project?.id) return null;

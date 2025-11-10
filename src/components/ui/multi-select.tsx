@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image'
 import { useState, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -128,10 +129,12 @@ export function MultiSelect({
                     onCheckedChange={() => toggleOption(option.value)}
                   />
                   {option.avatar && (
-                    <img
+                    <Image
                       src={option.avatar}
                       alt={option.label}
-                      className="w-6 h-6 rounded-full"
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-full object-cover"
                     />
                   )}
                   <div className="flex-1">

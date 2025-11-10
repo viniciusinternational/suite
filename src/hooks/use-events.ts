@@ -9,7 +9,11 @@ interface EventFilters {
   end?: string
 }
 
-export function useEvents(filters?: EventFilters) {
+interface UseEventsOptions {
+  enabled?: boolean
+}
+
+export function useEvents(filters?: EventFilters, options?: UseEventsOptions) {
   return useQuery({
     queryKey: ['events', filters],
     queryFn: async () => {
@@ -21,6 +25,7 @@ export function useEvents(filters?: EventFilters) {
       const res = await axios.get(`/events?${params.toString()}`)
       return res.data.data as Event[]
     },
+    enabled: options?.enabled ?? true,
   })
 }
 

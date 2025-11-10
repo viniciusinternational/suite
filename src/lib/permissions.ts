@@ -56,7 +56,7 @@ export function getUserPermissionsList(user: User | null): PermissionKey[] {
     return [];
   }
   return Object.entries(user.permissions)
-    .filter(([_, value]) => value === true)
+    .filter(([, value]) => value === true)
     .map(([key]) => key as PermissionKey);
 }
 

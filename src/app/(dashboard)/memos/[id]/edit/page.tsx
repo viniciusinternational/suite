@@ -3,7 +3,7 @@
 import { useRouter, useParams } from 'next/navigation'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { hasPermission } from '@/lib/permissions'
-import { useMemo } from '@/hooks/use-memos'
+import { useMemo as useMemoQuery } from '@/hooks/use-memos'
 import { MemoForm } from '@/components/memo/memo-form'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Loader2 } from 'lucide-react'
@@ -14,7 +14,7 @@ export default function EditMemoPage() {
   const memoId = params.id as string
   const { user } = useAuthGuard(['edit_memos'])
 
-  const { data: memo, isLoading } = useMemo(memoId)
+  const { data: memo, isLoading } = useMemoQuery(memoId)
 
   if (!user || !hasPermission(user, 'edit_memos')) {
     return (

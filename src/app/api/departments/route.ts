@@ -13,8 +13,6 @@ const createDepartmentSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
-const updateDepartmentSchema = createDepartmentSchema.partial()
-
 // GET /api/departments - List all departments
 export async function GET(request: NextRequest) {
   try {

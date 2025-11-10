@@ -10,8 +10,12 @@ interface RequestFilters {
   search?: string;
 }
 
+interface UseRequestsOptions {
+  enabled?: boolean;
+}
+
 // GET /api/requests - List all requests
-export function useRequests(filters?: RequestFilters) {
+export function useRequests(filters?: RequestFilters, options?: UseRequestsOptions) {
   return useQuery({
     queryKey: ['requests', filters],
     queryFn: async () => {
@@ -25,6 +29,7 @@ export function useRequests(filters?: RequestFilters) {
       const response = await axios.get(`/requests?${params.toString()}`);
       return response.data.data as RequestForm[];
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

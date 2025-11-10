@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useZitadelUsers } from '@/hooks/use-users';
 import type { ZitadelUser } from '@/types';
-import { Users, Search, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Users, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ZitadelUserSelectorProps {

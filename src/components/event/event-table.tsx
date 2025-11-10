@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Event } from '@/types'
-import { Edit, Trash2, Loader2 } from 'lucide-react'
+import { Edit, Trash2 } from 'lucide-react'
 
 interface Props {
   events: Event[]
@@ -20,14 +20,6 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-    })
-  }
-
-  const formatDate = (iso: string) => {
-    return new Date(iso).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
     })
   }
 

@@ -68,11 +68,7 @@ export default function ProjectDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Milestone List */}
         <div className="lg:col-span-2 space-y-6">
-          <MilestoneList
-            projectId={projectId}
-            projectStartDate={project.startDate}
-            projectEndDate={project.endDate}
-          />
+          <MilestoneList projectId={projectId} />
         </div>
 
         {/* Right Column: Project Info */}

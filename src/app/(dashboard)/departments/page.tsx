@@ -52,7 +52,7 @@ import { DepartmentForm } from "@/components/department/department-form";
 import { UnitForm } from "@/components/department/unit-form";
 
 // Import types and axios client
-import type { Department, DepartmentUnit, Sector, User } from "@/types";
+import type { Department, DepartmentUnit, Sector } from "@/types";
 import axiosClient from "@/lib/axios";
 
 // Type definitions from form components
@@ -229,9 +229,6 @@ export default function DepartmentsPage() {
 
   const getDepartmentHead = (headId?: string) =>   
     availableUsers.find((user) => user.id === headId);
-
-  const getUnitManager = (managerId?: string) =>
-    availableUsers.find((user) => user.id === managerId);
 
   // ---- Reset form functions ----
   const resetDeptForm = () => {

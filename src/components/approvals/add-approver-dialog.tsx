@@ -97,8 +97,6 @@ export function AddApproverDialog({
 
   const addApprover = useAddApprover(approvalId)
 
-  const selectedUser = approvers.find((item) => item.id === selectedUserId)
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFormError(null)

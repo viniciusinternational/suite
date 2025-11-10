@@ -48,11 +48,9 @@ import type { Milestone } from '@/types';
 
 interface MilestoneListProps {
   projectId: string;
-  projectStartDate: string;
-  projectEndDate: string;
 }
 
-export function MilestoneList({ projectId, projectStartDate, projectEndDate }: MilestoneListProps) {
+export function MilestoneList({ projectId }: MilestoneListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');

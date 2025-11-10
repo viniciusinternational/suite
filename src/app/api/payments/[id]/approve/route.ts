@@ -189,7 +189,6 @@ export async function POST(
     await logPaymentApprovalAction({
       actor,
       headers,
-      paymentId,
       approvalId: approval.id,
       action: payload.action,
       description: `${payload.action === 'approve' ? 'Approved' : 'Rejected'} payment approval at ${approval.level} level`,
@@ -220,7 +219,6 @@ export async function POST(
 async function logPaymentApprovalAction({
   actor,
   headers,
-  paymentId,
   approvalId,
   action,
   description,
@@ -234,7 +232,6 @@ async function logPaymentApprovalAction({
     departmentId: string | null
   }
   headers: Headers
-  paymentId: string
   approvalId: string
   action: 'approve' | 'reject'
   description: string

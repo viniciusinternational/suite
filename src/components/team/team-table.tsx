@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,10 +45,12 @@ export function TeamTable({ teams, onView, onEdit, onDelete }: Props) {
                   {team.leader ? (
                     <div className="flex items-center gap-2">
                       {team.leader.avatar && (
-                        <img
+                        <Image
                           src={team.leader.avatar}
                           alt={team.leader.fullName}
-                          className="w-6 h-6 rounded-full"
+                          width={24}
+                          height={24}
+                          className="h-6 w-6 rounded-full object-cover"
                         />
                       )}
                       <span className="text-sm">{team.leader.fullName}</span>

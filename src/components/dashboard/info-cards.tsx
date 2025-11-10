@@ -5,14 +5,10 @@ import { useEvents } from '@/hooks/use-events'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Calendar, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { format, addDays } from 'date-fns'
+import { addDays } from 'date-fns'
 import Link from 'next/link'
 
-interface Props {
-  userId?: string
-}
-
-export function InfoCards({ userId }: Props) {
+export function InfoCards() {
   const router = useRouter()
   
   // Get pending requests
