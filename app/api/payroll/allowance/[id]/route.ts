@@ -10,15 +10,22 @@ const updateAllowanceSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+type RouteContext = {
+  params: Promise<{
+    id: string
+  }>
+}
+
 // PATCH /api/payroll/allowance/[id] - Update allowance
 type UserAllowanceParams = { id: string };
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<UserAllowanceParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const body = await request.json()
     const data = updateAllowanceSchema.parse(body)
 
@@ -101,10 +108,11 @@ export async function PATCH(
 // DELETE /api/payroll/allowance/[id] - Delete allowance
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<UserAllowanceParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 

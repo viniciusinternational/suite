@@ -17,15 +17,20 @@ const updatePayrollSchema = z.object({
   ).optional(),
 })
 
-type RouteParams = { id: string };
+type RouteContext = {
+  params: Promise<{
+    id: string
+  }>
+}
 
 // GET /api/payroll/[id] - Get single payroll
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<RouteParams> }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const payroll = await prisma.payroll.findUnique({
       where: { id },
       include: {
@@ -136,10 +141,11 @@ export async function GET(
 // PATCH /api/payroll/[id] - Update payroll
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<RouteParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const body = await request.json()
     const data = updatePayrollSchema.parse(body)
 
@@ -261,10 +267,10 @@ export async function PATCH(
 // DELETE /api/payroll/[id] - Delete payroll
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<RouteParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 

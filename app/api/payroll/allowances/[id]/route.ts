@@ -4,7 +4,7 @@ import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 import { z } from 'zod'
 
 // Validation schema
-const updateDeductionSchema = z.object({
+const updateAllowanceSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   startDate: z.string().datetime().optional().or(z.literal('').optional()),
@@ -17,16 +17,23 @@ const updateDeductionSchema = z.object({
   departmentIds: z.array(z.string()).optional(),
 })
 
-// GET /api/payroll/deductions/[id] - Get single deduction
-type DeductionParams = { id: string };
+type RouteContext = {
+  params: Promise<{
+    id: string
+  }>
+}
+
+// GET /api/payroll/allowances/[id] - Get single allowance
+type AllowanceParams = { id: string };
 
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<DeductionParams> }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
-    const deduction = await prisma.deduction.findUnique({
+    const { id } = await context.params
+
+    const allowance = await prisma.allowance.findUnique({
       where: { id },
       include: {
         users: {
@@ -46,54 +53,55 @@ export async function GET(
       },
     })
 
-    if (!deduction) {
+    if (!allowance) {
       return NextResponse.json(
-        { ok: false, error: 'Deduction not found' },
+        { ok: false, error: 'Allowance not found' },
         { status: 404 }
       )
     }
 
     // Format dates
-    const formattedDeduction = {
-      ...deduction,
-      startDate: deduction.startDate?.toISOString() || null,
-      endDate: deduction.endDate?.toISOString() || null,
-      createdAt: deduction.createdAt.toISOString(),
-      updatedAt: deduction.updatedAt.toISOString(),
+    const formattedAllowance = {
+      ...allowance,
+      startDate: allowance.startDate?.toISOString() || null,
+      endDate: allowance.endDate?.toISOString() || null,
+      createdAt: allowance.createdAt.toISOString(),
+      updatedAt: allowance.updatedAt.toISOString(),
     }
 
-    return NextResponse.json({ ok: true, data: formattedDeduction })
+    return NextResponse.json({ ok: true, data: formattedAllowance })
   } catch (error) {
-    console.error('Error fetching deduction:', error)
+    console.error('Error fetching allowance:', error)
     return NextResponse.json(
-      { ok: false, error: 'Failed to fetch deduction' },
+      { ok: false, error: 'Failed to fetch allowance' },
       { status: 500 }
     )
   }
 }
 
-// PATCH /api/payroll/deductions/[id] - Update deduction
+// PATCH /api/payroll/allowances/[id] - Update allowance
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<DeductionParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const body = await request.json()
-    const data = updateDeductionSchema.parse(body)
+    const data = updateAllowanceSchema.parse(body)
 
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
-    // Get existing deduction for audit log
-    const existingDeduction = await prisma.deduction.findUnique({
+    // Get existing allowance for audit log
+    const existingAllowance = await prisma.allowance.findUnique({
       where: { id },
       include: { users: true },
     })
 
-    if (!existingDeduction) {
+    if (!existingAllowance) {
       return NextResponse.json(
-        { ok: false, error: 'Deduction not found' },
+        { ok: false, error: 'Allowance not found' },
         { status: 404 }
       )
     }
@@ -128,8 +136,8 @@ export async function PATCH(
       }
     }
 
-    // Update deduction
-    const updatedDeduction = await prisma.deduction.update({
+    // Update allowance
+    const updatedAllowance = await prisma.allowance.update({
       where: { id },
       data: updateData,
       include: {
@@ -156,31 +164,31 @@ export async function PATCH(
         userId: userId || 'system',
         userSnapshot,
         actionType: 'UPDATE',
-        entityType: 'Deduction',
-        entityId: updatedDeduction.id,
-        description: `Updated deduction "${updatedDeduction.title}"`,
-        previousData: existingDeduction as any,
-        newData: updatedDeduction as any,
+        entityType: 'Allowance',
+        entityId: updatedAllowance.id,
+        description: `Updated allowance "${updatedAllowance.title}"`,
+        previousData: existingAllowance as any,
+        newData: updatedAllowance as any,
         ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
         userAgent: headers.get('user-agent') ?? undefined,
       })
     } catch (e) {
-      console.warn('Audit log failed (update deduction):', e)
+      console.warn('Audit log failed (update allowance):', e)
     }
 
     // Format dates
-    const formattedDeduction = {
-      ...updatedDeduction,
-      startDate: updatedDeduction.startDate?.toISOString() || null,
-      endDate: updatedDeduction.endDate?.toISOString() || null,
-      createdAt: updatedDeduction.createdAt.toISOString(),
-      updatedAt: updatedDeduction.updatedAt.toISOString(),
+    const formattedAllowance = {
+      ...updatedAllowance,
+      startDate: updatedAllowance.startDate?.toISOString() || null,
+      endDate: updatedAllowance.endDate?.toISOString() || null,
+      createdAt: updatedAllowance.createdAt.toISOString(),
+      updatedAt: updatedAllowance.updatedAt.toISOString(),
     }
 
     return NextResponse.json({
       ok: true,
-      data: formattedDeduction,
-      message: 'Deduction updated successfully',
+      data: formattedAllowance,
+      message: 'Allowance updated successfully',
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -189,38 +197,38 @@ export async function PATCH(
         { status: 400 }
       )
     }
-    console.error('Error updating deduction:', error)
+    console.error('Error updating allowance:', error)
     return NextResponse.json(
-      { ok: false, error: 'Failed to update deduction' },
+      { ok: false, error: 'Failed to update allowance' },
       { status: 500 }
     )
   }
 }
 
-// DELETE /api/payroll/deductions/[id] - Delete deduction
+// DELETE /api/payroll/allowances/[id] - Delete allowance
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<DeductionParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
-    // Get existing deduction for audit log
-    const existingDeduction = await prisma.deduction.findUnique({
+    // Get existing allowance for audit log
+    const existingAllowance = await prisma.allowance.findUnique({
       where: { id },
     })
 
-    if (!existingDeduction) {
+    if (!existingAllowance) {
       return NextResponse.json(
-        { ok: false, error: 'Deduction not found' },
+        { ok: false, error: 'Allowance not found' },
         { status: 404 }
       )
     }
 
-    // Delete deduction
-    await prisma.deduction.delete({
+    // Delete allowance
+    await prisma.allowance.delete({
       where: { id },
     })
 
@@ -230,26 +238,26 @@ export async function DELETE(
         userId: userId || 'system',
         userSnapshot,
         actionType: 'DELETE',
-        entityType: 'Deduction',
+        entityType: 'Allowance',
         entityId: id,
-        description: `Deleted deduction "${existingDeduction.title}"`,
-        previousData: existingDeduction as any,
+        description: `Deleted allowance "${existingAllowance.title}"`,
+        previousData: existingAllowance as any,
         newData: null,
         ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
         userAgent: headers.get('user-agent') ?? undefined,
       })
     } catch (e) {
-      console.warn('Audit log failed (delete deduction):', e)
+      console.warn('Audit log failed (delete allowance):', e)
     }
 
     return NextResponse.json({
       ok: true,
-      message: 'Deduction deleted successfully',
+      message: 'Allowance deleted successfully',
     })
   } catch (error) {
-    console.error('Error deleting deduction:', error)
+    console.error('Error deleting allowance:', error)
     return NextResponse.json(
-      { ok: false, error: 'Failed to delete deduction' },
+      { ok: false, error: 'Failed to delete allowance' },
       { status: 500 }
     )
   }

@@ -4,21 +4,28 @@ import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger'
 import { z } from 'zod'
 
 // Validation schema
-const createDeductionSchema = z.object({
+const createAllowanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   amount: z.number().nonnegative('Amount must be non-negative'),
   isActive: z.boolean().default(true),
 })
 
-// GET /api/payroll/user-deductions/[userId] - Get all deductions for a user
+type RouteContext = {
+  params: Promise<{
+    userId: string
+  }>
+}
+
+// GET /api/payroll/user-allowances/[userId] - Get all allowances for a user
 type UserParams = { userId: string };
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<UserParams> }
+  context: RouteContext
 ) {
   try {
-    const { userId } = await context.params;
+    const { userId } = await context.params
+
     const isActive = request.nextUrl.searchParams.get('isActive')
     
     const where: any = { userId }
@@ -26,7 +33,7 @@ export async function GET(
       where.isActive = isActive === 'true'
     }
 
-    const deductions = await prisma.userDeduction.findMany({
+    const allowances = await prisma.userAllowance.findMany({
       where,
       include: {
         user: {
@@ -43,31 +50,32 @@ export async function GET(
     })
 
     // Format dates
-    const formattedDeductions = deductions.map(deduction => ({
-      ...deduction,
-      createdAt: deduction.createdAt.toISOString(),
-      updatedAt: deduction.updatedAt.toISOString(),
+    const formattedAllowances = allowances.map(allowance => ({
+      ...allowance,
+      createdAt: allowance.createdAt.toISOString(),
+      updatedAt: allowance.updatedAt.toISOString(),
     }))
 
-    return NextResponse.json({ ok: true, data: formattedDeductions })
+    return NextResponse.json({ ok: true, data: formattedAllowances })
   } catch (error) {
-    console.error('Error fetching user deductions:', error)
+    console.error('Error fetching user allowances:', error)
     return NextResponse.json(
-      { ok: false, error: 'Failed to fetch user deductions' },
+      { ok: false, error: 'Failed to fetch user allowances' },
       { status: 500 }
     )
   }
 }
 
-// POST /api/payroll/user-deductions/[userId] - Create new deduction for user
+// POST /api/payroll/user-allowances/[userId] - Create new allowance for user
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<UserParams> }
+  context: RouteContext
 ) {
   try {
-    const { userId: targetUserId } = await context.params;
+    const { userId: targetUserId } = await context.params
+
     const body = await request.json()
-    const data = createDeductionSchema.parse(body)
+    const data = createAllowanceSchema.parse(body)
 
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
@@ -84,8 +92,8 @@ export async function POST(
       )
     }
 
-    // Create deduction
-    const deduction = await prisma.userDeduction.create({
+    // Create allowance
+    const allowance = await prisma.userAllowance.create({
       data: {
         userId: targetUserId,
         name: data.name,
@@ -109,29 +117,29 @@ export async function POST(
         userId: userId || 'system',
         userSnapshot,
         actionType: 'CREATE',
-        entityType: 'UserDeduction',
-        entityId: deduction.id,
-        description: `Created deduction "${data.name}" for user ${user.fullName}`,
+        entityType: 'UserAllowance',
+        entityId: allowance.id,
+        description: `Created allowance "${data.name}" for user ${user.fullName}`,
         previousData: null,
-        newData: deduction as any,
+        newData: allowance as any,
         ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
         userAgent: headers.get('user-agent') ?? undefined,
       })
     } catch (e) {
-      console.warn('Audit log failed (create user deduction):', e)
+      console.warn('Audit log failed (create user allowance):', e)
     }
 
     // Format dates
-    const formattedDeduction = {
-      ...deduction,
-      createdAt: deduction.createdAt.toISOString(),
-      updatedAt: deduction.updatedAt.toISOString(),
+    const formattedAllowance = {
+      ...allowance,
+      createdAt: allowance.createdAt.toISOString(),
+      updatedAt: allowance.updatedAt.toISOString(),
     }
 
     return NextResponse.json({
       ok: true,
-      data: formattedDeduction,
-      message: 'Deduction created successfully',
+      data: formattedAllowance,
+      message: 'Allowance created successfully',
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -140,9 +148,9 @@ export async function POST(
         { status: 400 }
       )
     }
-    console.error('Error creating user deduction:', error)
+    console.error('Error creating user allowance:', error)
     return NextResponse.json(
-      { ok: false, error: 'Failed to create user deduction' },
+      { ok: false, error: 'Failed to create user allowance' },
       { status: 500 }
     )
   }

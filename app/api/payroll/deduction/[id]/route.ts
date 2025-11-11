@@ -10,15 +10,22 @@ const updateDeductionSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+type RouteContext = {
+  params: Promise<{
+    id: string
+  }>
+}
+
 // PATCH /api/payroll/deduction/[id] - Update deduction
 type UserDeductionParams = { id: string };
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<UserDeductionParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const body = await request.json()
     const data = updateDeductionSchema.parse(body)
 
@@ -101,10 +108,11 @@ export async function PATCH(
 // DELETE /api/payroll/deduction/[id] - Delete deduction
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<UserDeductionParams> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params
+
     const headers = request.headers
     const { userId, userSnapshot } = getUserInfoFromHeaders(headers)
 
