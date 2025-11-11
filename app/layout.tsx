@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VinSuite - Admin Dashboard",
-  description: "Comprehensive admin dashboard for VinSuite",
+  title: "VinSuite - Dashboard",
+  description: "Comprehensive dashboard for Vinicius Company",
 };
 
 export default function RootLayout({
