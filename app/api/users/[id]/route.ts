@@ -1,57 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
-
-// Helpers to gracefully handle typical UI inputs (empty strings, string numbers, nulls)
-const optionalNonEmptyString = z
-  .preprocess((value) => (value === '' ? undefined : value), z.string().min(1))
-  .optional();
-
-const optionalStringAllowEmpty = z
-  .preprocess((value) => (value === '' ? undefined : value), z.string())
-  .optional();
-
-const optionalNullableString = z
-  .preprocess((value) => (value === '' ? null : value), z.string().optional().nullable())
-  .nullable()
-  .optional();
-
-const optionalPositiveNumber = z
-  .preprocess((value) => {
-    if (value === '' || value === undefined || value === null) return undefined;
-    return value;
-  }, z.coerce.number().positive())
-  .optional();
-
-const updateUserSchema = z.object({
-  firstName: optionalNonEmptyString,
-  lastName: optionalNonEmptyString,
-  fullName: optionalNonEmptyString,
-  phone: optionalNonEmptyString,
-  dob: optionalStringAllowEmpty,
-  gender: optionalStringAllowEmpty,
-  email: z.string().email().optional(),
-  role: z
-    .enum([
-      'super_admin',
-      'managing_director',
-      'department_head',
-      'hr_manager',
-      'administrator',
-      'accountant',
-      'employee',
-    ])
-    .optional(),
-  departmentId: optionalNullableString,
-  employeeId: optionalNullableString,
-  position: optionalNonEmptyString,
-  hireDate: optionalStringAllowEmpty,
-  salary: optionalPositiveNumber,
-  avatar: optionalNullableString,
-  permissions: z.record(z.boolean()).optional().nullable(),
-  isActive: z.boolean().optional(),
-});
+import { logUserChange } from './audit-utils';
+import { updateUserSchema } from './validation';
 
 // GET /api/users/[id] - Get single user
 export async function GET(
@@ -172,42 +123,16 @@ export async function PUT(
       }
     }
 
-    // Update user
     const updatedUser = await prisma.user.update({
       where: { id },
       data: validatedData,
     });
 
-    // Audit log (best-effort)
-    try {
-      const headers = request.headers;
-      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
-      
-      // Check if permissions were changed
-      const permissionsChanged = 
-        validatedData.permissions !== undefined && 
-        JSON.stringify(existingUser.permissions) !== JSON.stringify(validatedData.permissions);
-      
-      const actionType = permissionsChanged ? 'PERMISSION_CHANGED' : 'UPDATE';
-      const description = permissionsChanged
-        ? `Changed permissions for user "${updatedUser.fullName}"`
-        : `Updated user "${updatedUser.fullName}"`;
-      
-      await createAuditLog({
-        userId: userId || 'system',
-        userSnapshot,
-        actionType,
-        entityType: 'User',
-        entityId: id,
-        description,
-        previousData: existingUser as any,
-        newData: updatedUser as any,
-        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
-        userAgent: headers.get('user-agent') ?? undefined,
-      });
-    } catch (e) {
-      console.error('Audit log failed (update user):', e);
-    }
+    await logUserChange({
+      request,
+      existingUser,
+      updatedUser,
+    });
 
     // Convert DateTime fields to ISO strings
     const formattedUser = {
@@ -222,6 +147,7 @@ export async function PUT(
       message: 'User updated successfully',
     });
   } catch (error) {
+    console.error('Error updating user:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -272,26 +198,13 @@ export async function DELETE(
       data: { isActive: false },
     });
 
-    // Audit log (best-effort)
-    try {
-      const headers = request.headers;
-      const { userId, userSnapshot } = getUserInfoFromHeaders(headers);
-      
-      await createAuditLog({
-        userId: userId || 'system',
-        userSnapshot,
-        actionType: 'DELETE',
-        entityType: 'User',
-        entityId: id,
-        description: `Deactivated user "${existingUser.fullName}"`,
-        previousData: existingUser as any,
-        newData: deletedUser as any,
-        ipAddress: request.ip ?? headers.get('x-forwarded-for') ?? undefined,
-        userAgent: headers.get('user-agent') ?? undefined,
-      });
-    } catch (e) {
-      console.error('Audit log failed (delete user):', e);
-    }
+    await logUserChange({
+      request,
+      existingUser,
+      updatedUser: deletedUser,
+      actionType: 'DELETE',
+      description: `Deactivated user "${existingUser.fullName}"`,
+    });
 
     // Convert DateTime fields to ISO strings
     const formattedUser = {

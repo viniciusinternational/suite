@@ -159,6 +159,12 @@ const MODULE_PERMISSIONS = [
       { key: 'delete_memos', label: 'Delete Memos', description: 'Remove memos' },
     ],
   },
+  {
+    module: 'AI Assistant',
+    permissions: [
+      { key: 'view_ai_assistant', label: 'Access AI Assistant', description: 'Open and use the AI assistant modal' },
+    ],
+  },
 ];
 
 export function PermissionsEditor({ value = {}, onChange }: PermissionsEditorProps) {

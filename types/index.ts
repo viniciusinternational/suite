@@ -81,7 +81,9 @@ export type PermissionKey =
   | 'view_memos'
   | 'add_memos'
   | 'edit_memos'
-  | 'delete_memos';
+  | 'delete_memos'
+  // AI Assistant Module
+  | 'view_ai_assistant';
 
 // Permission record type
 export type UserPermissions = Record<PermissionKey, boolean>;

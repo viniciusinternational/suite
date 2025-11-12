@@ -232,7 +232,7 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
               ViniSuite
             </h1>
             <p className="text-xs text-muted-foreground font-medium">
-              Construction Management
+              
             </p>
           </div>
         </div>

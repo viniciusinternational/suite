@@ -130,12 +130,7 @@ export default function UserDetailsPage() {
             <p className="text-gray-600 mt-1">Complete user information and records</p>
           </div>
         </div>
-        <Button onClick={() => {
-          // Open edit dialog in users page
-          const editUrl = new URL('/users', window.location.origin);
-          editUrl.searchParams.set('edit', user.id);
-          router.push(editUrl.pathname + editUrl.search);
-        }}>
+        <Button onClick={() => router.push(`/users/${user.id}/edit`)}>
           <Edit className="h-4 w-4 mr-2" />
           Edit User
         </Button>

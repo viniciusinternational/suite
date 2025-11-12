@@ -71,18 +71,59 @@ export function useCreateUser() {
 }
 
 // Update user mutation
-export function useUpdateUser() {
+type UpdateUserDetailsPayload = Partial<
+  Pick<User, 'firstName' | 'lastName' | 'fullName' | 'phone' | 'dob' | 'gender' | 'email' | 'avatar' | 'isActive'>
+>;
+
+type UpdateUserEmploymentPayload = Partial<
+  Pick<User, 'departmentId' | 'employeeId' | 'position' | 'hireDate' | 'salary' | 'role'>
+>;
+
+type UpdateUserPermissionsPayload = {
+  permissions: Record<string, boolean> | null;
+};
+
+export function useUpdateUserDetails() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<User> }) => {
-      const response = await axiosClient.put(`/users/${id}`, data);
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserDetailsPayload }) => {
+      const response = await axiosClient.patch(`/users/${id}/details`, data);
       return response.data.data as User;
     },
-    onSuccess: (data) => {
-      // Invalidate users list and specific user
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['users', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
+    },
+  });
+}
+
+export function useUpdateUserEmployment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserEmploymentPayload }) => {
+      const response = await axiosClient.patch(`/users/${id}/employment`, data);
+      return response.data.data as User;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
+    },
+  });
+}
+
+export function useUpdateUserPermissions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateUserPermissionsPayload }) => {
+      const response = await axiosClient.patch(`/users/${id}/permissions`, data);
+      return response.data.data as User;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
     },
   });
 }
