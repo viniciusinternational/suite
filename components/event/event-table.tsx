@@ -32,6 +32,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
               <TableHead>Title</TableHead>
               <TableHead>Start</TableHead>
               <TableHead>End</TableHead>
+              <TableHead>Visibility</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Targets</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -43,6 +44,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
                 <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                 <TableCell className="text-right">
@@ -67,6 +69,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
             <TableHead>Title</TableHead>
             <TableHead>Start</TableHead>
             <TableHead>End</TableHead>
+            <TableHead>Visibility</TableHead>
             <TableHead>Tags</TableHead>
             <TableHead>Targets</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -75,7 +78,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
         <TableBody>
           {events.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-gray-600">
+              <TableCell colSpan={7} className="text-center py-8 text-gray-600">
                 No events found
               </TableCell>
             </TableRow>
@@ -84,7 +87,24 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
               <TableRow key={ev.id}>
                 <TableCell className="font-medium">{ev.title}</TableCell>
                 <TableCell>{formatDateTime(ev.startDateTime)}</TableCell>
-                <TableCell>{formatDateTime(ev.endDateTime)}</TableCell>
+                <TableCell>{ev.isAllDay ? 'All day' : formatDateTime(ev.endDateTime)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {ev.isGlobal && (
+                      <Badge variant="secondary" className="text-xs">
+                        Global
+                      </Badge>
+                    )}
+                    {ev.isAllDay && (
+                      <Badge variant="outline" className="text-xs">
+                        All Day
+                      </Badge>
+                    )}
+                    {!ev.isGlobal && !ev.isAllDay && (
+                      <span className="text-xs text-gray-400">Timed</span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   {ev.tags && ev.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,9 @@ import { useCreateEvent, useUpdateEvent } from '@/hooks/use-events'
 import axios from '@/lib/axios'
 import type { Department, DepartmentUnit, Event, User } from '@/types'
 import { X, Plus, Loader2 } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -20,10 +23,23 @@ const schema = z.object({
   tags: z.array(z.string()).optional(),
   link: z.string().url().optional().or(z.literal('')).optional(),
   startDateTime: z.string().min(1, 'Start is required'),
-  endDateTime: z.string().min(1, 'End is required'),
+  endDateTime: z.string().optional(),
+  endTime: z.string().optional(),
+  isAllDay: z.boolean().optional(),
+  isGlobal: z.boolean().optional(),
   userIds: z.array(z.string()).optional(),
   departmentIds: z.array(z.string()).optional(),
   unitIds: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+  if (!data.isAllDay) {
+    if (!data.endTime || !timeRegex.test(data.endTime)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End time must be in HH:mm format',
+        path: ['endTime'],
+      })
+    }
+  }
 })
 
 type FormValues = z.infer<typeof schema>
@@ -45,6 +61,18 @@ export function EventForm({ event, onSuccess }: Props) {
   const createMutation = useCreateEvent()
   const updateMutation = useUpdateEvent(event?.id || '')
 
+  const initialEndTime = useMemo(() => {
+    if (!event || event.isAllDay) return ''
+    if (event.endTime) return event.endTime
+    if (event.endDateTime) {
+      const date = new Date(event.endDateTime)
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    }
+    return ''
+  }, [event])
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -53,7 +81,10 @@ export function EventForm({ event, onSuccess }: Props) {
       tags: event?.tags || [],
       link: event?.link || '',
       startDateTime: event?.startDateTime ? new Date(event.startDateTime).toISOString().slice(0,16) : '',
-      endDateTime: event?.endDateTime ? new Date(event.endDateTime).toISOString().slice(0,16) : '',
+      endDateTime: event?.endDateTime ? new Date(event.endDateTime).toISOString() : undefined,
+      endTime: initialEndTime,
+      isAllDay: event?.isAllDay ?? false,
+      isGlobal: event?.isGlobal ?? false,
       userIds: (event?.users || []).map(u => u.id),
       departmentIds: (event?.departments || []).map(d => d.id),
       unitIds: (event?.units || []).map(u => u.id),
@@ -99,14 +130,58 @@ export function EventForm({ event, onSuccess }: Props) {
     })()
   }, [])
 
+  const isAllDay = form.watch('isAllDay')
+
+  useEffect(() => {
+    if (isAllDay) {
+      form.setValue('endTime', '')
+    }
+  }, [isAllDay, form])
+
   const onSubmit = async (values: FormValues) => {
+    const start = new Date(values.startDateTime)
+    if (isNaN(start.getTime())) {
+      form.setError('startDateTime', { message: 'Invalid start date' })
+      return
+    }
+
+    let endDate = new Date(start)
+    if (values.isAllDay) {
+      endDate.setDate(endDate.getDate() + 1)
+    } else if (values.endTime) {
+      const [hours, minutes] = values.endTime.split(':').map(Number)
+      endDate.setHours(hours, minutes, 0, 0)
+      if (endDate <= start) {
+        form.setError('endTime', { message: 'End time must be after start time' })
+        return
+      }
+      if (
+        endDate.getFullYear() !== start.getFullYear() ||
+        endDate.getMonth() !== start.getMonth() ||
+        endDate.getDate() !== start.getDate()
+      ) {
+        form.setError('endTime', { message: 'End time must be on the same day as start time' })
+        return
+      }
+      if (endDate.getTime() - start.getTime() > 24 * 60 * 60 * 1000) {
+        form.setError('endTime', { message: 'Event cannot exceed 24 hours' })
+        return
+      }
+    } else {
+      form.setError('endTime', { message: 'End time is required for timed events' })
+      return
+    }
+
     const payload = {
       title: values.title,
       description: values.description || undefined,
       tags: values.tags || [],
       link: values.link || undefined,
-      startDateTime: new Date(values.startDateTime).toISOString(),
-      endDateTime: new Date(values.endDateTime).toISOString(),
+      startDateTime: start.toISOString(),
+      endDateTime: endDate.toISOString(),
+      endTime: values.isAllDay ? undefined : values.endTime,
+      isAllDay: values.isAllDay ?? false,
+      isGlobal: values.isGlobal ?? false,
       userIds: values.userIds || [],
       departmentIds: values.departmentIds || [],
       unitIds: values.unitIds || [],
@@ -177,12 +252,51 @@ export function EventForm({ event, onSuccess }: Props) {
             )}
           </div>
           <div className="space-y-2">
-            <Label>End *</Label>
-            <Input type="datetime-local" {...form.register('endDateTime')} />
-            {form.formState.errors.endDateTime && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.endDateTime.message}</p>
+            <Label>End Time {isAllDay ? '(all-day)' : '*'}</Label>
+            <Input
+              type="time"
+              step={60}
+              disabled={isAllDay}
+              {...form.register('endTime')}
+            />
+            {form.formState.errors.endTime && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.endTime.message}</p>
             )}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Controller
+            name="isAllDay"
+            control={form.control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label className="text-sm font-medium">All Day Event</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Runs for the entire day. End time not required.
+                  </p>
+                </div>
+                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+              </div>
+            )}
+          />
+
+          <Controller
+            name="isGlobal"
+            control={form.control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label className="text-sm font-medium">Global Event</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Visible to everyone regardless of selected audiences.
+                  </p>
+                </div>
+                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+              </div>
+            )}
+          />
         </div>
 
         {/* Row 4: Tags and Link */}

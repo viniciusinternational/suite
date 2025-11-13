@@ -10,6 +10,7 @@ import type { Event as AppEvent } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, CalendarIcon } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 const localizer = momentLocalizer(moment)
 
@@ -49,13 +50,21 @@ export function EventCalendar({ onAddEvent, canAddEvent = false }: Props) {
 
   // Convert app events to calendar events
   const calendarEvents: Event[] = useMemo(() => {
-    return events.map((evt) => ({
-      id: evt.id,
-      title: evt.title,
-      start: new Date(evt.startDateTime),
-      end: new Date(evt.endDateTime),
-      resource: evt, // Store full event data
-    }))
+    return events.map((evt) => {
+      const start = new Date(evt.startDateTime)
+      const end = evt.isAllDay
+        ? new Date(start.getTime() + 24 * 60 * 60 * 1000)
+        : new Date(evt.endDateTime)
+
+      return {
+        id: evt.id,
+        title: evt.title,
+        start,
+        end,
+        allDay: evt.isAllDay,
+        resource: evt, // Store full event data
+      }
+    })
   }, [events])
 
   const eventStyleGetter = (event: any) => {
@@ -116,7 +125,21 @@ export function EventCalendar({ onAddEvent, canAddEvent = false }: Props) {
         <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{selectedEvent.title}</DialogTitle>
+              <DialogTitle className="flex items-center gap-3">
+                {selectedEvent.title}
+                <div className="flex items-center gap-2">
+                  {selectedEvent.isGlobal && (
+                    <Badge variant="secondary" className="text-xs">
+                      Global
+                    </Badge>
+                  )}
+                  {selectedEvent.isAllDay && (
+                    <Badge variant="outline" className="text-xs">
+                      All Day
+                    </Badge>
+                  )}
+                </div>
+              </DialogTitle>
               {selectedEvent.description && (
                 <DialogDescription>{selectedEvent.description}</DialogDescription>
               )}
@@ -124,11 +147,21 @@ export function EventCalendar({ onAddEvent, canAddEvent = false }: Props) {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600">
-                  <strong>Start:</strong> {format(new Date(selectedEvent.startDateTime), 'PPPp')}
+                  <strong>Start:</strong>{' '}
+                  {format(
+                    new Date(selectedEvent.startDateTime),
+                    selectedEvent.isAllDay ? 'PPP' : 'PPPp'
+                  )}
                 </p>
-                <p className="text-sm text-gray-600">
-                  <strong>End:</strong> {format(new Date(selectedEvent.endDateTime), 'PPPp')}
-                </p>
+                {!selectedEvent.isAllDay ? (
+                  <p className="text-sm text-gray-600">
+                    <strong>End:</strong> {format(new Date(selectedEvent.endDateTime), 'PPPp')}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    <strong>Duration:</strong> All day
+                  </p>
+                )}
               </div>
               {selectedEvent.tags && selectedEvent.tags.length > 0 && (
                 <div>

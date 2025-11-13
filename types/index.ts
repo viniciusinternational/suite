@@ -595,6 +595,7 @@ export type AuditEntityType =
   | 'User'
   | 'Department'
   | 'DepartmentUnit'
+  | 'Event'
   | 'Project'
   | 'Milestone'
   | 'Task'
@@ -652,6 +653,9 @@ export interface Event {
   link?: string;
   startDateTime: string;
   endDateTime: string;
+  endTime?: string | null;
+  isAllDay: boolean;
+  isGlobal: boolean;
   users?: Pick<User, 'id' | 'fullName' | 'email' | 'role'>[];
   departments?: Pick<Department, 'id' | 'name' | 'code'>[];
   units?: Pick<DepartmentUnit, 'id' | 'name' | 'departmentId'>[];

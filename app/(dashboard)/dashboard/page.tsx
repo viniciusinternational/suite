@@ -211,29 +211,100 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Memo Detail Modal */}
+      {/* Memo Detail Modal - A4 Professional View */}
       <Dialog open={!!selectedMemo} onOpenChange={() => setSelectedMemo(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedMemo?.priority === 'urgent' && (
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              )}
-              {selectedMemo?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span>From: {selectedMemo?.createdBy?.fullName}</span>
-              <span>•</span>
-              <span>{selectedMemo?.createdAt && format(new Date(selectedMemo.createdAt), 'PPP')}</span>
-              <span>•</span>
-              <span className="capitalize font-medium">{selectedMemo?.priority} Priority</span>
+        <DialogContent 
+          className="!max-w-[210mm] !w-[210mm] !p-0 overflow-y-auto max-h-[90vh] bg-white print:shadow-none print:max-h-none relative"
+          showCloseButton={true}
+        >
+          {/* Watermark Background */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03] print:opacity-[0.08] z-0 overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-45deg]">
+              <div className="text-[120px] font-black text-gray-400 select-none whitespace-nowrap tracking-wider">
+                VINICIUS INTERNATIONAL
+              </div>
             </div>
-            
+          </div>
+
+          {/* A4 Document Container */}
+          <div className="relative bg-white min-h-[297mm] p-[25mm] print:p-[20mm] flex flex-col z-10">
+            {/* Professional Header */}
+            <div className="border-b-2 border-gray-800 pb-4 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">VINICIUS INTERNATIONAL</h1>
+                  <p className="text-sm text-gray-600 mt-1 font-medium">Official Memorandum</p>
+                </div>
+                <div className="text-right">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md ${
+                    selectedMemo?.priority === 'urgent' ? 'bg-red-50 border border-red-200' :
+                    selectedMemo?.priority === 'high' ? 'bg-orange-50 border border-orange-200' :
+                    selectedMemo?.priority === 'medium' ? 'bg-yellow-50 border border-yellow-200' :
+                    'bg-gray-50 border border-gray-200'
+                  }`}>
+                    {selectedMemo?.priority === 'urgent' && (
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <span className={`text-xs font-semibold uppercase tracking-wide ${
+                      selectedMemo?.priority === 'urgent' ? 'text-red-700' :
+                      selectedMemo?.priority === 'high' ? 'text-orange-700' :
+                      selectedMemo?.priority === 'medium' ? 'text-yellow-700' :
+                      'text-gray-700'
+                    }`}>
+                      {selectedMemo?.priority || 'Standard'} Priority
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Memo Metadata */}
+            <div className="mb-6 space-y-3 text-sm bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="font-semibold text-gray-700">From:</span>
+                  <span className="ml-2 text-gray-900">{selectedMemo?.createdBy?.fullName || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-700">Date:</span>
+                  <span className="ml-2 text-gray-900">
+                    {selectedMemo?.createdAt && format(new Date(selectedMemo.createdAt), 'MMMM dd, yyyy')}
+                  </span>
+                </div>
+              </div>
+              {selectedMemo?.expiresAt && (
+                <div>
+                  <span className="font-semibold text-gray-700">Expires:</span>
+                  <span className="ml-2 text-gray-900">
+                    {format(new Date(selectedMemo.expiresAt), 'MMMM dd, yyyy')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Memo Title */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 leading-tight border-l-4 border-gray-800 pl-4">
+                {selectedMemo?.title}
+              </h2>
+            </div>
+
+            {/* Memo Content */}
             {selectedMemo?.content && (
               <div 
-                className="prose prose-sm max-w-none"
+                className="flex-1 prose prose-lg max-w-none text-gray-800 leading-relaxed
+                  prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mt-6 prose-headings:mb-4
+                  prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                  prose-p:mb-4 prose-p:text-justify prose-p:text-[15px]
+                  prose-strong:text-gray-900 prose-strong:font-semibold
+                  prose-ul:list-disc prose-ul:ml-6 prose-ul:mb-4 prose-ul:space-y-2
+                  prose-ol:list-decimal prose-ol:ml-6 prose-ol:mb-4 prose-ol:space-y-2
+                  prose-li:mb-2 prose-li:text-[15px]
+                  prose-a:text-blue-700 prose-a:underline hover:prose-a:text-blue-800
+                  prose-hr:border-gray-300 prose-hr:my-6
+                  prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic
+                  prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+                  prose-pre:bg-gray-900 prose-pre:text-gray-100"
                 dangerouslySetInnerHTML={{ 
                   __html: typeof window !== 'undefined' 
                     ? DOMPurify.sanitize(selectedMemo.content)
@@ -242,13 +313,21 @@ export default function DashboardPage() {
               />
             )}
 
-            {selectedMemo?.expiresAt && (
-              <div className="pt-4 border-t">
-                <p className="text-sm text-gray-600">
-                  Expires: {format(new Date(selectedMemo.expiresAt), 'PPP')}
-                </p>
+            {/* Professional Footer */}
+            <div className="mt-12 pt-6 border-t-2 border-gray-300">
+              <div className="flex justify-between items-end text-xs text-gray-600">
+                <div>
+                  <p className="font-semibold text-gray-700 text-sm">Vinicius International</p>
+                  <p className="mt-1">Confidential Document</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">Page 1 of 1</p>
+                  <p className="mt-1">
+                    Generated: {format(new Date(), 'MMM dd, yyyy HH:mm')}
+                  </p>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

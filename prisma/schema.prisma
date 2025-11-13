@@ -235,6 +235,9 @@ model Event {
   link          String?
   startDateTime DateTime
   endDateTime   DateTime
+  endTime       String?
+  isGlobal      Boolean   @default(false)
+  isAllDay      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   createdById   String?
