@@ -160,6 +160,15 @@ const MODULE_PERMISSIONS = [
     ],
   },
   {
+    module: 'Documents',
+    permissions: [
+      { key: 'view_documents', label: 'View Documents', description: 'View document list and details' },
+      { key: 'add_documents', label: 'Add Documents', description: 'Create new documents' },
+      { key: 'edit_documents', label: 'Edit Documents', description: 'Modify existing documents' },
+      { key: 'delete_documents', label: 'Delete Documents', description: 'Remove documents' },
+    ],
+  },
+  {
     module: 'AI Assistant',
     permissions: [
       { key: 'view_ai_assistant', label: 'Access AI Assistant', description: 'Open and use the AI assistant modal' },

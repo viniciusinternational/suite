@@ -139,6 +139,14 @@ export const navigationConfig: NavigationItem[] = [
     href: '/memos',
     permissions: ['view_memos'],
   },
+  // Documents Module
+  {
+    id: 'documents',
+    label: 'Documents',
+    icon: 'FileText',
+    href: '/documents',
+    permissions: ['view_documents'],
+  },
 ];
 
 /**

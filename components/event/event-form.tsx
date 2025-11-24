@@ -27,6 +27,7 @@ const schema = z.object({
   endTime: z.string().optional(),
   isAllDay: z.boolean().optional(),
   isGlobal: z.boolean().optional(),
+  createVirtualMeeting: z.boolean().optional(),
   userIds: z.array(z.string()).optional(),
   departmentIds: z.array(z.string()).optional(),
   unitIds: z.array(z.string()).optional(),
@@ -57,6 +58,8 @@ export function EventForm({ event, onSuccess }: Props) {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(true)
   const [isLoadingTags, setIsLoadingTags] = useState(true)
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false)
+  const [meetingError, setMeetingError] = useState<string | null>(null)
 
   const createMutation = useCreateEvent()
   const updateMutation = useUpdateEvent(event?.id || '')
@@ -85,6 +88,7 @@ export function EventForm({ event, onSuccess }: Props) {
       endTime: initialEndTime,
       isAllDay: event?.isAllDay ?? false,
       isGlobal: event?.isGlobal ?? false,
+      createVirtualMeeting: false,
       userIds: (event?.users || []).map(u => u.id),
       departmentIds: (event?.departments || []).map(d => d.id),
       unitIds: (event?.units || []).map(u => u.id),
@@ -109,8 +113,8 @@ export function EventForm({ event, onSuccess }: Props) {
         setUnits(allUnits)
         
         // Extract unique tags from all events
-        const allTags = (eventsRes.data.data || []).flatMap((e: Event) => e.tags || [])
-        const uniqueTags = Array.from(new Set(allTags)).filter(Boolean).sort()
+        const allTags = (eventsRes.data.data || []).flatMap((e: Event) => e.tags || []) as string[]
+        const uniqueTags = Array.from(new Set(allTags)).filter((tag): tag is string => Boolean(tag)).sort()
         
         // Add default tags if no tags exist yet
         const defaultTags = ['workshop', 'training', 'meeting', 'conference', 'important', 'urgent', 'seminar', 'webinar']
@@ -130,13 +134,56 @@ export function EventForm({ event, onSuccess }: Props) {
     })()
   }, [])
 
+  // Watch form values - react-hook-form optimizes these internally
   const isAllDay = form.watch('isAllDay')
+  const isGlobal = form.watch('isGlobal')
+  const createVirtualMeetingEnabled = form.watch('createVirtualMeeting')
+  const linkValue = form.watch('link')
 
   useEffect(() => {
     if (isAllDay) {
       form.setValue('endTime', '')
     }
   }, [isAllDay, form])
+
+  // Function to create virtual meeting
+  const createVirtualMeeting = async (): Promise<string | null> => {
+    try {
+      setIsCreatingMeeting(true)
+      setMeetingError(null)
+      
+      const response = await fetch('https://meet.viniciusint.com/api/meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_public: true }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create meeting: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      
+      // Handle different possible response structures
+      const roomname = data.roomname || data.data?.roomname || data.room?.name || data.name
+      
+      if (!roomname) {
+        throw new Error('Room name not found in API response')
+      }
+
+      return roomname
+    } catch (error) {
+      console.log('Error creating virtual meeting:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create virtual meeting'
+      setMeetingError(errorMessage)
+      console.error('Error creating virtual meeting:', error)
+      return null
+    } finally {
+      setIsCreatingMeeting(false)
+    }
+  }
 
   const onSubmit = async (values: FormValues) => {
     const start = new Date(values.startDateTime)
@@ -172,11 +219,28 @@ export function EventForm({ event, onSuccess }: Props) {
       return
     }
 
+    // Create virtual meeting if enabled - atomic operation
+    let meetingLink = values.link
+    if (values.createVirtualMeeting) {
+      const roomname = await createVirtualMeeting()
+      if (!roomname) {
+        // Meeting creation failed - abort entire event creation
+        form.setError('createVirtualMeeting', { 
+          message: 'Failed to create virtual meeting. Please try again or disable this option.' 
+        })
+        return // Abort submission
+      }
+      // Meeting creation succeeded - proceed with event creation
+      meetingLink = `https://meet.viniciusint.com/join/${roomname}`
+      form.setValue('link', meetingLink)
+      setMeetingError(null) // Clear error on success
+    }
+
     const payload = {
       title: values.title,
       description: values.description || undefined,
       tags: values.tags || [],
-      link: values.link || undefined,
+      link: meetingLink || undefined,
       startDateTime: start.toISOString(),
       endDateTime: endDate.toISOString(),
       endTime: values.isAllDay ? undefined : values.endTime,
@@ -265,19 +329,23 @@ export function EventForm({ event, onSuccess }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <Controller
             name="isAllDay"
             control={form.control}
             render={({ field }) => (
-              <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex flex-col gap-2 rounded-md border p-3">
                 <div>
                   <Label className="text-sm font-medium">All Day Event</Label>
                   <p className="text-xs text-muted-foreground">
                     Runs for the entire day. End time not required.
                   </p>
                 </div>
-                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                <Switch
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                  className="self-start"
+                />
               </div>
             )}
           />
@@ -286,108 +354,179 @@ export function EventForm({ event, onSuccess }: Props) {
             name="isGlobal"
             control={form.control}
             render={({ field }) => (
-              <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex flex-col gap-2 rounded-md border p-3">
                 <div>
                   <Label className="text-sm font-medium">Global Event</Label>
                   <p className="text-xs text-muted-foreground">
                     Visible to everyone regardless of selected audiences.
                   </p>
                 </div>
-                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                <Switch
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                  className="self-start"
+                />
+              </div>
+            )}
+          />
+
+          <Controller
+            name="createVirtualMeeting"
+            control={form.control}
+            render={({ field }) => (
+              <div className="flex flex-col gap-2 rounded-md border p-3">
+                <div>
+                  <Label className="text-sm font-medium">Create Virtual Meeting</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically create a virtual meeting room for this event.
+                  </p>
+                  {isCreatingMeeting && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Creating meeting room...</span>
+                    </div>
+                  )}
+                  {meetingError && (
+                    <p className="text-xs text-red-600 mt-2">{meetingError}</p>
+                  )}
+                </div>
+                <Switch 
+                  checked={field.value ?? false} 
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked)
+                    if (!checked) {
+                      setMeetingError(null)
+                    }
+                  }}
+                  disabled={isCreatingMeeting}
+                  className="self-start"
+                />
               </div>
             )}
           />
         </div>
 
-        {/* Row 4: Tags and Link */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            {isLoadingTags ? (
-              <div className="flex items-center gap-2 text-muted-foreground py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Loading tags...</span>
-              </div>
+        {/* Row 4: Tags (always visible) */}
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          {isLoadingTags ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading tags...</span>
+            </div>
+          ) : (
+            <MultiSelect
+              options={tagOptions}
+              selected={form.watch('tags') || []}
+              onChange={(selected) => form.setValue('tags', selected)}
+              placeholder="Select tags..."
+              searchPlaceholder="Search tags..."
+              emptyMessage="No tags found"
+              className="w-full"
+            />
+          )}
+        </div>
+
+        {/* Conditional: Link field (rendered last for efficiency) */}
+        {createVirtualMeetingEnabled ? (
+          <div className="space-y-2 rounded-md border p-3 bg-muted/40">
+            <Label>Meeting Link</Label>
+            {linkValue ? (
+              <a
+                href={linkValue}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary underline break-all"
+              >
+                {linkValue}
+              </a>
             ) : (
-              <MultiSelect
-                options={tagOptions}
-                selected={form.watch('tags') || []}
-                onChange={(selected) => form.setValue('tags', selected)}
-                placeholder="Select tags..."
-                searchPlaceholder="Search tags..."
-                emptyMessage="No tags found"
-                className="w-full"
-              />
+              <p className="text-xs text-muted-foreground">
+                A secure meeting link will be generated automatically once the event is saved.
+              </p>
+            )}
+            {form.formState.errors.createVirtualMeeting && (
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.createVirtualMeeting.message}
+              </p>
             )}
           </div>
+        ) : (
           <div className="space-y-2">
             <Label>Link</Label>
             <Input {...form.register('link')} placeholder="https://..." />
           </div>
-        </div>
+        )}
 
-        {/* Row 5: Users (full width) */}
-        <div className="space-y-2">
-          <Label>Users</Label>
-          {isLoadingUsers ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading users...</span>
+        {/* Conditional: Audience selectors (rendered last for efficiency) */}
+        {!isGlobal ? (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Users</Label>
+              {isLoadingUsers ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading users...</span>
+                </div>
+              ) : (
+                <MultiSelect
+                  options={userOptions}
+                  selected={form.watch('userIds') || []}
+                  onChange={(selected) => form.setValue('userIds', selected)}
+                  placeholder="Select users..."
+                  searchPlaceholder="Search users..."
+                  emptyMessage="No users found"
+                  className="w-full"
+                />
+              )}
             </div>
-          ) : (
-            <MultiSelect
-              options={userOptions}
-              selected={form.watch('userIds') || []}
-              onChange={(selected) => form.setValue('userIds', selected)}
-              placeholder="Select users..."
-              searchPlaceholder="Search users..."
-              emptyMessage="No users found"
-              className="w-full"
-            />
-          )}
-        </div>
 
-        {/* Row 6: Departments (full width) */}
-        <div className="space-y-2">
-          <Label>Departments</Label>
-          {isLoadingDepartments ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading departments...</span>
+            <div className="space-y-2">
+              <Label>Departments</Label>
+              {isLoadingDepartments ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading departments...</span>
+                </div>
+              ) : (
+                <MultiSelect
+                  options={departmentOptions}
+                  selected={form.watch('departmentIds') || []}
+                  onChange={(selected) => form.setValue('departmentIds', selected)}
+                  placeholder="Select departments..."
+                  searchPlaceholder="Search departments..."
+                  emptyMessage="No departments found"
+                  className="w-full"
+                />
+              )}
             </div>
-          ) : (
-            <MultiSelect
-              options={departmentOptions}
-              selected={form.watch('departmentIds') || []}
-              onChange={(selected) => form.setValue('departmentIds', selected)}
-              placeholder="Select departments..."
-              searchPlaceholder="Search departments..."
-              emptyMessage="No departments found"
-              className="w-full"
-            />
-          )}
-        </div>
 
-        {/* Row 7: Units (full width) */}
-        <div className="space-y-2">
-          <Label>Units</Label>
-          {isLoadingDepartments ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading units...</span>
+            <div className="space-y-2">
+              <Label>Units</Label>
+              {isLoadingDepartments ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading units...</span>
+                </div>
+              ) : (
+                <MultiSelect
+                  options={unitOptions}
+                  selected={form.watch('unitIds') || []}
+                  onChange={(selected) => form.setValue('unitIds', selected)}
+                  placeholder="Select units..."
+                  searchPlaceholder="Search units..."
+                  emptyMessage="No units found"
+                  className="w-full"
+                />
+              )}
             </div>
-          ) : (
-            <MultiSelect
-              options={unitOptions}
-              selected={form.watch('unitIds') || []}
-              onChange={(selected) => form.setValue('unitIds', selected)}
-              placeholder="Select units..."
-              searchPlaceholder="Search units..."
-              emptyMessage="No units found"
-              className="w-full"
-            />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+            This event is marked as global, so it will be shared with the entire organization.
+            Audience selectors are hidden.
+          </div>
+        )}
       </form>
 
       {/* Action Buttons */}
@@ -404,11 +543,20 @@ export function EventForm({ event, onSuccess }: Props) {
         <Button 
           type="submit" 
           form="event-form"
-          disabled={createMutation.isPending || updateMutation.isPending}
+          disabled={createMutation.isPending || updateMutation.isPending || isCreatingMeeting}
           className="gap-2"
         >
-          <Plus className="h-4 w-4" />
-          {event?.id ? 'Save Changes' : 'Add'}
+          {isCreatingMeeting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating Meeting...
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              {event?.id ? 'Save Changes' : 'Add'}
+            </>
+          )}
         </Button>
       </div>
     </div>

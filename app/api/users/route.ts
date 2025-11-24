@@ -20,7 +20,32 @@ const createUserSchema = z.object({
   hireDate: z.string().min(1, 'Hire date is required'),
   salary: z.number().positive('Salary must be positive'),
   avatar: z.string().optional(),
-  permissions: z.record(z.boolean()).optional(),
+  permissions: z.preprocess(
+    (value) => {
+      if (!value || typeof value !== 'object') return value;
+      const result: Record<string, boolean> = {};
+      for (const [key, val] of Object.entries(value)) {
+        if (typeof val === 'string') {
+          const normalized = val.trim().toLowerCase();
+          if (normalized === 'true' || normalized === '1') {
+            result[key] = true;
+          } else if (normalized === 'false' || normalized === '0' || normalized === '') {
+            result[key] = false;
+          } else {
+            result[key] = Boolean(val);
+          }
+        } else if (typeof val === 'number') {
+          result[key] = val === 1;
+        } else if (typeof val === 'boolean') {
+          result[key] = val;
+        } else {
+          result[key] = Boolean(val);
+        }
+      }
+      return result;
+    },
+    z.record(z.string(), z.boolean()).optional()
+  ),
   isActive: z.boolean().default(true),
 });
 

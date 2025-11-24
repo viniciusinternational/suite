@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Optional: set this in .env to use a different database for shadow
 }
 
 model Department {
@@ -30,6 +31,9 @@ model Department {
   memos       Memo[]          @relation("MemoDepartments")
   deductions  Deduction[]     @relation("DeductionDepartments")
   allowances  Allowance[]     @relation("AllowanceDepartments")
+  documentsView    Document[] @relation("DocumentViewDepartments")
+  documentsEdit    Document[] @relation("DocumentEditDepartments")
+  documentsDelete  Document[] @relation("DocumentDeleteDepartments")
 
   @@map("departments")
 }
@@ -101,6 +105,11 @@ model User {
   paymentsPayee    Payment[]            @relation("PaymentPayee")
   paymentApprovals PaymentApproval[]    @relation("PaymentApprovalUser")
   paymentApprovalsAdded PaymentApproval[] @relation("PaymentApprovalAddedBy")
+  documentsOwned   Document[]           @relation("DocumentOwner")
+  documentsView    Document[]           @relation("DocumentViewUsers")
+  documentsEdit    Document[]           @relation("DocumentEditUsers")
+  documentsDelete  Document[]           @relation("DocumentDeleteUsers")
+  documentComments Comment[]            @relation("DocumentCommentUser")
 
   @@map("users")
 }
@@ -646,4 +655,122 @@ model PaymentApproval {
   @@index([status])
   @@index([addedById])
   @@map("payment_approvals")
+}
+
+model Document {
+  id              String    @id @default(cuid())
+  title           String
+  contentText     String?   @db.Text
+  description     String?   @db.Text
+  keywords        String[]  @default([]) // Array of keywords for search
+  isPublic        Boolean   @default(false) // Public access flag
+  isGlobalView    Boolean   @default(false) // Global view access flag
+  isGlobalEdit    Boolean   @default(false) // Global edit access flag
+  originalFilename String?
+  mimeType        String?
+  pageCount       Int?
+  checksum        String?
+  size            Int?      // File size in bytes
+  originalFileUrl String?   // URL to original file
+  thumbnailUrl    String?   // URL to thumbnail
+  pdfUrl          String?   // URL to PDF version
+  ownerId         String?   // User who owns/created the document
+  correspondentId String?   // Correspondent associated with document
+  documentTypeId  String?   // Document type
+  viewUserIds     String[]  @default([]) // Array of user IDs with view permission
+  editUserIds     String[]  @default([]) // Array of user IDs with edit permission
+  deleteUserIds   String[]  @default([]) // Array of user IDs with delete permission
+  viewDepartmentIds String[] @default([]) // Array of department IDs with view permission
+  editDepartmentIds String[] @default([]) // Array of department IDs with edit permission
+  deleteDepartmentIds String[] @default([]) // Array of department IDs with delete permission
+  createdAt       DateTime  @default(now())
+  modifiedAt      DateTime  @updatedAt
+  addedAt         DateTime  @default(now())
+
+  // Relations
+  owner           User?       @relation("DocumentOwner", fields: [ownerId], references: [id])
+  correspondent   Correspondent? @relation(fields: [correspondentId], references: [id])
+  documentType    DocumentType?  @relation(fields: [documentTypeId], references: [id])
+  tags            Tag[]         @relation("DocumentTags")
+  comments        Comment[]
+  viewUsers       User[]         @relation("DocumentViewUsers")
+  editUsers       User[]         @relation("DocumentEditUsers")
+  deleteUsers     User[]         @relation("DocumentDeleteUsers")
+  viewDepartments Department[]   @relation("DocumentViewDepartments")
+  editDepartments Department[]   @relation("DocumentEditDepartments")
+  deleteDepartments Department[] @relation("DocumentDeleteDepartments")
+
+  @@index([ownerId])
+  @@index([correspondentId])
+  @@index([documentTypeId])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@index([modifiedAt])
+  @@index([addedAt])
+  @@map("documents")
+}
+
+model Tag {
+  id      String    @id @default(cuid())
+  name    String
+  color   String?   // Color code for the tag
+  slug    String    @unique
+  match   String?   @db.Text // String for OCR matching
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents Document[] @relation("DocumentTags")
+
+  @@index([slug])
+  @@index([name])
+  @@map("tags")
+}
+
+model Correspondent {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  documents Document[]
+
+  @@index([slug])
+  @@index([name])
+  @@map("correspondents")
+}
+
+model DocumentType {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  documents Document[]
+
+  @@index([slug])
+  @@index([name])
+  @@map("document_types")
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  note       String   @db.Text
+  created    DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User     @relation("DocumentCommentUser", fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([created])
+  @@map("document_comments")
 }
