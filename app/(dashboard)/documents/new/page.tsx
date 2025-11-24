@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DocumentForm } from '@/components/document/document-form';
-import { ArrowLeft, FileText, File as FileIcon, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { DocumentForm, DocumentFormRef } from '@/components/document/document-form';
+import { ArrowLeft, FileText, File as FileIcon, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
 
 interface UploadState {
   file: File | null;
@@ -21,6 +21,8 @@ interface UploadState {
 export default function NewDocumentPage() {
   useAuthGuard(['add_documents']);
   const router = useRouter();
+  const formRef = useRef<DocumentFormRef>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>({
     file: null,
     url: null,
@@ -37,6 +39,21 @@ export default function NewDocumentPage() {
 
   const handleUploadChange = (state: UploadState) => {
     setUploadState(state);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (formRef.current) {
+      await formRef.current.handleFileSelect(event);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    if (formRef.current) {
+      formRef.current.handleRemoveFile();
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const formatFileSize = (bytes: number | null): string => {
@@ -81,7 +98,7 @@ export default function NewDocumentPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DocumentForm onSuccess={handleSuccess} onUploadChange={handleUploadChange} />
+              <DocumentForm ref={formRef} onSuccess={handleSuccess} onUploadChange={handleUploadChange} />
             </CardContent>
           </Card>
         </div>
@@ -97,9 +114,35 @@ export default function NewDocumentPage() {
             </CardHeader>
             <CardContent>
               {!uploadState.file && !uploadState.url ? (
-                <div className="text-center py-8 text-sm text-gray-500">
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p>File will appear here after upload</p>
+                <div className="space-y-4">
+                  {/* File Picker/Dropzone */}
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="file"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={uploadState.uploading}
+                    />
+                    <label
+                      htmlFor="file"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="h-10 w-10 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PDF, DOC, DOCX, images, etc. (Max 50MB)
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                  {uploadState.uploading && formRef.current?.uploadError && (
+                    <p className="text-sm text-red-600">{formRef.current.uploadError}</p>
+                  )}
                 </div>
               ) : uploadState.uploading ? (
                 <div className="space-y-4">
@@ -145,6 +188,28 @@ export default function NewDocumentPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* File Picker/Dropzone at top when file exists */}
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="file-replace"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={uploadState.uploading}
+                    />
+                    <label
+                      htmlFor="file-replace"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="h-6 w-6 text-gray-400" />
+                      <p className="text-xs font-medium text-gray-700">
+                        Replace file
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* File Preview */}
                   {uploadState.url && isImage(uploadState.mimeType) ? (
                     <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                       <img
@@ -171,6 +236,14 @@ export default function NewDocumentPage() {
                           </p>
                         )}
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
                   {uploadState.url && (

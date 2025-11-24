@@ -175,6 +175,60 @@ export async function rollbackUpload(key: string): Promise<void> {
   }
 }
 
+// Extract S3 key from full S3 URL
+export function extractS3KeyFromUrl(url: string): string | null {
+  try {
+    // Handle different S3 URL formats:
+    // 1. https://bucket.s3.region.amazonaws.com/key
+    // 2. https://s3.region.amazonaws.com/bucket/key
+    // 3. https://endpoint/bucket/key (MinIO/custom endpoint)
+    // 4. /bucket/key (path-style)
+    
+    const urlObj = new URL(url);
+    let key: string | null = null;
+    
+    // Path-style URL: /bucket/key or /key
+    if (urlObj.pathname.startsWith('/')) {
+      const parts = urlObj.pathname.split('/').filter(Boolean);
+      // If first part is bucket name, skip it
+      if (parts[0] === DOCUMENTS_BUCKET && parts.length > 1) {
+        key = parts.slice(1).join('/');
+      } else if (parts.length > 0) {
+        // Assume first part is key if bucket doesn't match
+        key = parts.join('/');
+      }
+    } else {
+      // Virtual-hosted style: bucket.s3.region.amazonaws.com
+      const hostname = urlObj.hostname;
+      if (hostname.startsWith(DOCUMENTS_BUCKET + '.')) {
+        // Remove bucket prefix and extract path
+        key = urlObj.pathname.slice(1); // Remove leading slash
+      } else if (hostname.includes('s3') || hostname.includes('amazonaws')) {
+        // Standard S3 URL
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        if (pathParts[0] === DOCUMENTS_BUCKET && pathParts.length > 1) {
+          key = pathParts.slice(1).join('/');
+        } else if (pathParts.length > 0) {
+          key = pathParts.join('/');
+        }
+      } else {
+        // Custom endpoint (MinIO)
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        if (pathParts[0] === DOCUMENTS_BUCKET && pathParts.length > 1) {
+          key = pathParts.slice(1).join('/');
+        } else if (pathParts.length > 0) {
+          key = pathParts.join('/');
+        }
+      }
+    }
+    
+    return key || null;
+  } catch (error) {
+    console.error('Error extracting S3 key from URL:', error);
+    return null;
+  }
+}
+
 // Upload file to S3
 export async function uploadToS3(
   fileBuffer: Buffer,
@@ -184,7 +238,7 @@ export async function uploadToS3(
   // Generate UUID without hyphens
   const uuid = uuidv4().replace(/-/g, '');
   const fileExtension = fileName.split('.').pop() || '';
-  const objectName = `temp/${uuid}.${fileExtension}`;
+  const objectName = `${uuid}/originalfile.${fileExtension}`;
 
   try {
     // Ensure bucket exists before uploading

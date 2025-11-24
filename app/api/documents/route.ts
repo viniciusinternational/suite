@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createAuditLog, getUserInfoFromHeaders } from '@/lib/audit-logger';
 import { publishToQueue } from '@/lib/rabbitmq';
+import { rollbackUpload, extractS3KeyFromUrl } from '@/lib/s3';
 import { z } from 'zod';
 
 // Validation schemas
@@ -259,8 +260,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create document
-    const created = await prisma.document.create({
+    // Extract S3 key from originalFileUrl for potential rollback
+    let s3KeyForRollback: string | null = null;
+    if (data.originalFileUrl) {
+      s3KeyForRollback = extractS3KeyFromUrl(data.originalFileUrl);
+    }
+
+    // Create document with rollback support for uploaded files
+    let created;
+    try {
+      created = await prisma.document.create({
       data: {
         title: data.title,
         contentText: data.contentText,
@@ -307,6 +316,22 @@ export async function POST(request: NextRequest) {
         deleteDepartments: { select: { id: true, name: true, code: true } },
       },
     });
+    } catch (dbError) {
+      // Rollback: delete uploaded file from S3 if document creation failed
+      if (s3KeyForRollback) {
+        try {
+          await rollbackUpload(s3KeyForRollback);
+          console.log(`[Document API] Rolled back file upload for key: ${s3KeyForRollback}`);
+        } catch (rollbackError) {
+          const rollbackErrorMsg = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+          console.error(`[Document API] Failed to rollback file upload (key: ${s3KeyForRollback}):`, rollbackErrorMsg);
+          // Continue to throw the original DB error even if rollback fails
+        }
+      }
+      
+      // Re-throw the original database error
+      throw dbError;
+    }
 
     // Publish to RabbitMQ queue (synchronous - fails document creation if this fails)
     try {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -63,7 +63,15 @@ interface Props {
   onUploadChange?: (state: UploadState) => void;
 }
 
-export function DocumentForm({ document, onSuccess, onUploadChange }: Props) {
+export interface DocumentFormRef {
+  handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleRemoveFile: () => void;
+  uploading: boolean;
+  uploadProgress: number;
+  uploadError: string | null;
+}
+
+export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSuccess, onUploadChange }, ref) => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -214,6 +222,15 @@ export function DocumentForm({ document, onSuccess, onUploadChange }: Props) {
     notifyUploadChange(null, null, null, null, null, false, 0);
   };
 
+  // Expose handlers via ref
+  useImperativeHandle(ref, () => ({
+    handleFileSelect,
+    handleRemoveFile,
+    uploading,
+    uploadProgress,
+    uploadError,
+  }));
+
   const onSubmit = async (values: FormValues) => {
     try {
       const payload = {
@@ -335,88 +352,6 @@ export function DocumentForm({ document, onSuccess, onUploadChange }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* File Upload */}
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold mb-4">File Upload</h3>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="file">Upload Document</Label>
-            <div className="mt-2">
-              {uploadedFile || form.watch('originalFileUrl') ? (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileIcon className="h-8 w-8 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {uploadedFile?.name || form.watch('originalFilename') || 'File uploaded'}
-                        </p>
-                        {uploadedFile && (
-                          <p className="text-xs text-muted-foreground">
-                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRemoveFile}
-                      disabled={uploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {uploading && (
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                        <span>Uploading...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    id="file"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                    disabled={uploading}
-                  />
-                  <label
-                    htmlFor="file"
-                    className="cursor-pointer flex flex-col items-center gap-2"
-                  >
-                    <Upload className="h-10 w-10 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        PDF, DOC, DOCX, images, etc. (Max 50MB)
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              )}
-              {uploadError && (
-                <p className="text-sm text-red-600 mt-2">{uploadError}</p>
-              )}
             </div>
           </div>
         </div>
@@ -554,5 +489,7 @@ export function DocumentForm({ document, onSuccess, onUploadChange }: Props) {
       </div>
     </form>
   );
-}
+});
+
+DocumentForm.displayName = 'DocumentForm';
 
