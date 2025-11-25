@@ -19,6 +19,7 @@ interface Props {
   onViewDepartmentsChange: (ids: string[]) => void;
   onEditDepartmentsChange: (ids: string[]) => void;
   onDeleteDepartmentsChange: (ids: string[]) => void;
+  isPublic?: boolean;
 }
 
 export function DocumentPermissions({
@@ -36,6 +37,7 @@ export function DocumentPermissions({
   onViewDepartmentsChange,
   onEditDepartmentsChange,
   onDeleteDepartmentsChange,
+  isPublic = false,
 }: Props) {
   const userOptions = users.map((u) => ({
     id: u.id,
@@ -54,37 +56,39 @@ export function DocumentPermissions({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-semibold mb-4">View Permissions</h3>
-        <div className="space-y-4">
-          <div>
-            <Label>Users with View Access</Label>
-            <div className="mt-2">
-              <MultiSelect
-                options={userOptions}
-                selected={viewUserIds}
-                onChange={onViewUsersChange}
-                placeholder="Select users..."
-                searchPlaceholder="Search users..."
-                emptyMessage="No users found"
-              />
+      {!isPublic && (
+        <div>
+          <h3 className="text-sm font-semibold mb-4">View Permissions</h3>
+          <div className="space-y-4">
+            <div>
+              <Label>Users with View Access</Label>
+              <div className="mt-2">
+                <MultiSelect
+                  options={userOptions}
+                  selected={viewUserIds}
+                  onChange={onViewUsersChange}
+                  placeholder="Select users..."
+                  searchPlaceholder="Search users..."
+                  emptyMessage="No users found"
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Departments with View Access</Label>
-            <div className="mt-2">
-              <MultiSelect
-                options={departmentOptions}
-                selected={viewDepartmentIds}
-                onChange={onViewDepartmentsChange}
-                placeholder="Select departments..."
-                searchPlaceholder="Search departments..."
-                emptyMessage="No departments found"
-              />
+            <div>
+              <Label>Departments with View Access</Label>
+              <div className="mt-2">
+                <MultiSelect
+                  options={departmentOptions}
+                  selected={viewDepartmentIds}
+                  onChange={onViewDepartmentsChange}
+                  placeholder="Select departments..."
+                  searchPlaceholder="Search departments..."
+                  emptyMessage="No departments found"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div>
         <h3 className="text-sm font-semibold mb-4">Edit Permissions</h3>

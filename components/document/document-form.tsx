@@ -151,58 +151,14 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
       return;
     }
 
+    // Just store the file, don't upload yet
     setUploadedFile(file);
     setUploadError(null);
     setUploadProgress(0);
-    setUploading(true);
+    setUploading(false);
     
-    // Notify parent of upload start
-    notifyUploadChange(file, null, file.type, file.name, file.size, true, 0);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(progress);
-            // Notify parent of upload progress
-            notifyUploadChange(file, null, file.type, file.name, file.size, true, progress);
-          }
-        },
-      });
-
-      const fileUrl = response.data.url;
-      const fileName = response.data.filename || file.name;
-      const mimeType = response.data.mimeType || file.type;
-
-      // Set all three URLs to the same S3 URL
-      form.setValue('originalFileUrl', fileUrl);
-      form.setValue('thumbnailUrl', fileUrl);
-      form.setValue('pdfUrl', fileUrl);
-      form.setValue('originalFilename', fileName);
-      form.setValue('mimeType', mimeType);
-      form.setValue('size', file.size);
-
-      setUploadProgress(100);
-      
-      // Notify parent of upload completion
-      notifyUploadChange(file, fileUrl, mimeType, fileName, file.size, false, 100);
-    } catch (error: any) {
-      console.error('Error uploading file:', error);
-      setUploadError(error?.response?.data?.error || error?.message || 'Failed to upload file');
-      setUploadedFile(null);
-      
-      // Notify parent of upload failure
-      notifyUploadChange(null, null, null, null, null, false, 0);
-    } finally {
-      setUploading(false);
-    }
+    // Notify parent that file is selected (but not uploaded)
+    notifyUploadChange(file, null, file.type, file.name, file.size, false, 0);
   };
 
   const handleRemoveFile = () => {
@@ -222,6 +178,33 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
     notifyUploadChange(null, null, null, null, null, false, 0);
   };
 
+  // Upload file to S3
+  const uploadFile = async (file: File): Promise<{ url: string; path: string; filename: string; mimeType: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(progress);
+          // Notify parent of upload progress
+          notifyUploadChange(file, null, file.type, file.name, file.size, true, progress);
+        }
+      },
+    });
+
+    return {
+      url: response.data.url,
+      path: response.data.path || response.data.url,
+      filename: response.data.filename || file.name,
+      mimeType: response.data.mimeType || file.type,
+    };
+  };
+
   // Expose handlers via ref
   useImperativeHandle(ref, () => ({
     handleFileSelect,
@@ -232,9 +215,57 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
   }));
 
   const onSubmit = async (values: FormValues) => {
+    let uploadedFileUrl: string | null = null;
+    let uploadedFilePath: string | null = null;
+    let shouldRollbackUpload = false;
+
     try {
+      setUploading(true);
+      setUploadError(null);
+      setUploadProgress(0);
+
+      // Step 1: Upload file first if there's a new file selected
+      if (uploadedFile && !document?.id) {
+        // Only upload for new documents (not updates)
+        try {
+          setUploadProgress(10);
+          notifyUploadChange(uploadedFile, null, uploadedFile.type, uploadedFile.name, uploadedFile.size, true, 10);
+
+          const uploadResult = await uploadFile(uploadedFile);
+          uploadedFileUrl = uploadResult.url;
+          uploadedFilePath = uploadResult.path;
+          shouldRollbackUpload = true; // Mark for rollback if document creation fails
+
+          setUploadProgress(90);
+          notifyUploadChange(uploadedFile, uploadResult.url, uploadResult.mimeType, uploadResult.filename, uploadedFile.size, true, 90);
+
+          // Update form values with uploaded file info
+          form.setValue('originalFileUrl', uploadResult.url);
+          form.setValue('thumbnailUrl', uploadResult.url);
+          form.setValue('pdfUrl', uploadResult.url);
+          form.setValue('originalFilename', uploadResult.filename);
+          form.setValue('mimeType', uploadResult.mimeType);
+          form.setValue('size', uploadedFile.size);
+        } catch (uploadError: any) {
+          console.error('Error uploading file:', uploadError);
+          setUploadError(uploadError?.response?.data?.error || uploadError?.message || 'Failed to upload file');
+          setUploading(false);
+          notifyUploadChange(uploadedFile, null, uploadedFile.type, uploadedFile.name, uploadedFile.size, false, 0);
+          return; // Stop here if upload fails
+        }
+      }
+
+      // Step 2: Create/update document atomically
+      setUploadProgress(95);
       const payload = {
         ...values,
+        // Use uploaded file URL if available, otherwise use existing values
+        originalFileUrl: uploadedFileUrl || values.originalFileUrl,
+        thumbnailUrl: uploadedFileUrl || values.thumbnailUrl,
+        pdfUrl: uploadedFileUrl || values.pdfUrl,
+        originalFilename: uploadedFile ? uploadedFile.name : values.originalFilename,
+        mimeType: uploadedFile ? uploadedFile.type : values.mimeType,
+        size: uploadedFile ? uploadedFile.size : values.size,
         correspondentId: values.correspondentId || undefined,
         documentTypeId: values.documentTypeId || undefined,
       };
@@ -244,11 +275,38 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
       } else {
         await createMutation.mutateAsync(payload);
       }
+
+      // Success - mark that we don't need to rollback
+      shouldRollbackUpload = false;
+      setUploadProgress(100);
+      notifyUploadChange(uploadedFile, uploadedFileUrl || values.originalFileUrl || null, uploadedFile?.type || values.mimeType || null, uploadedFile?.name || values.originalFilename || null, uploadedFile?.size || values.size || null, false, 100);
+
       onSuccess?.();
     } catch (error: any) {
       console.error('Error saving document:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to save document';
+
+      // Step 3: Server-side rollback is handled automatically by the API
+      // The API will delete the uploaded file if document creation fails
+      // We just need to reset the client-side state
+
+      // Reset file state on error
+      if (shouldRollbackUpload) {
+        setUploadedFile(null);
+        form.setValue('originalFileUrl', '');
+        form.setValue('thumbnailUrl', '');
+        form.setValue('pdfUrl', '');
+        form.setValue('originalFilename', '');
+        form.setValue('mimeType', '');
+        form.setValue('size', undefined);
+        notifyUploadChange(null, null, null, null, null, false, 0);
+      }
+
+      setUploadError(errorMessage);
+      setUploading(false);
       alert(errorMessage);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -364,7 +422,18 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
             <Checkbox
               id="isPublic"
               checked={form.watch('isPublic')}
-              onCheckedChange={(checked) => form.setValue('isPublic', checked === true)}
+              onCheckedChange={(checked) => {
+                form.setValue('isPublic', checked === true);
+                if (checked) {
+                  // When making public, enable global view and clear view permissions
+                  form.setValue('isGlobalView', true);
+                  form.setValue('viewUserIds', []);
+                  form.setValue('viewDepartmentIds', []);
+                } else {
+                  // When unmaking public, disable global view
+                  form.setValue('isGlobalView', false);
+                }
+              }}
             />
             <div className="flex-1">
               <Label htmlFor="isPublic" className="cursor-pointer font-medium">
@@ -388,6 +457,11 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
                     // Clear specific permissions when global view is enabled
                     form.setValue('viewUserIds', []);
                     form.setValue('viewDepartmentIds', []);
+                  } else {
+                    // When unchecking global view, if isPublic is true, also uncheck it
+                    if (form.watch('isPublic')) {
+                      form.setValue('isPublic', false);
+                    }
                   }
                 }}
               />
@@ -427,10 +501,9 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
         </div>
       </div>
 
-      {(!form.watch('isGlobalView') || !form.watch('isGlobalEdit')) && (
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">Permissions</h3>
-          <DocumentPermissions
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Permissions</h3>
+        <DocumentPermissions
             users={users}
             departments={departments}
             viewUserIds={form.watch('viewUserIds') || []}
@@ -439,10 +512,12 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
             viewDepartmentIds={form.watch('viewDepartmentIds') || []}
             editDepartmentIds={form.watch('editDepartmentIds') || []}
             deleteDepartmentIds={form.watch('deleteDepartmentIds') || []}
+            isPublic={form.watch('isPublic')}
             onViewUsersChange={(ids) => {
               form.setValue('viewUserIds', ids);
               if (ids.length > 0) {
                 form.setValue('isGlobalView', false);
+                form.setValue('isPublic', false);
               }
             }}
             onEditUsersChange={(ids) => {
@@ -456,6 +531,7 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
               form.setValue('viewDepartmentIds', ids);
               if (ids.length > 0) {
                 form.setValue('isGlobalView', false);
+                form.setValue('isPublic', false);
               }
             }}
             onEditDepartmentsChange={(ids) => {
@@ -465,19 +541,23 @@ export const DocumentForm = forwardRef<DocumentFormRef, Props>(({ document, onSu
               }
             }}
             onDeleteDepartmentsChange={(ids) => form.setValue('deleteDepartmentIds', ids)}
-          />
-          {form.watch('isGlobalView') && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Note: Global view is enabled. Specific view permissions are ignored.
-            </p>
-          )}
-          {form.watch('isGlobalEdit') && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Note: Global edit is enabled. Specific edit permissions are ignored.
-            </p>
-          )}
-        </div>
-      )}
+        />
+        {form.watch('isPublic') && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Document is public. All users have view access. View permissions are not available.
+          </p>
+        )}
+        {form.watch('isGlobalView') && !form.watch('isPublic') && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Global view is enabled. Specific view permissions are ignored.
+          </p>
+        )}
+        {form.watch('isGlobalEdit') && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Global edit is enabled. Specific edit permissions are ignored.
+          </p>
+        )}
+      </div>
 
       <div className="flex gap-2">
         <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>

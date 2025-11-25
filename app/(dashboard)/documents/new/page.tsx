@@ -137,12 +137,59 @@ export default function NewDocumentPage() {
                         <p className="text-xs text-muted-foreground mt-1">
                           PDF, DOC, DOCX, images, etc. (Max 50MB)
                         </p>
+                        <p className="text-xs text-blue-600 mt-2 font-medium">
+                          File will be uploaded when you submit the form
+                        </p>
                       </div>
                     </label>
                   </div>
                   {uploadState.uploading && formRef.current?.uploadError && (
                     <p className="text-sm text-red-600">{formRef.current.uploadError}</p>
                   )}
+                </div>
+              ) : uploadState.file && !uploadState.url && !uploadState.uploading ? (
+                // File selected but not uploaded yet
+                <div className="space-y-4">
+                  {/* File Picker/Dropzone at top when file exists */}
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="file-replace"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={uploadState.uploading}
+                    />
+                    <label
+                      htmlFor="file-replace"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="h-6 w-6 text-gray-400" />
+                      <p className="text-xs font-medium text-gray-700">
+                        Replace file
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* File Info - Selected but not uploaded */}
+                  <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+                    <div className="flex items-center gap-3">
+                      <FileIcon className="h-8 w-8 text-blue-600" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {uploadState.filename || uploadState.file?.name || 'File selected'}
+                        </p>
+                        {uploadState.size && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(uploadState.size)}
+                          </p>
+                        )}
+                        <p className="text-xs text-blue-600 mt-1 font-medium">
+                          ✓ Selected - will upload on submit
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : uploadState.uploading ? (
                 <div className="space-y-4">

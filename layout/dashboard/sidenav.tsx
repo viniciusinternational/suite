@@ -163,14 +163,14 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
             {renderIcon(item.icon, "h-4 w-4")}
             <span>{item.label}</span>
             {item.badge && (
-              <Badge variant="secondary" className="ml-auto h-5 px-2 text-xs">
+              <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] font-medium">
                 {item.badge}
               </Badge>
             )}
             {isOpen ? (
-              <ChevronDown className="h-4 w-4 ml-auto" />
+              <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-60" strokeWidth={2.5} />
             ) : (
-              <ChevronRight className="h-4 w-4 ml-auto" />
+              <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-60" strokeWidth={2.5} />
             )}
           </SidebarMenuButton>
           
@@ -182,11 +182,11 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
                     onClick={() => child.href && router.push(child.href)}
                     isActive={isActive(child.href)}
                   >
-                    <Dot className="h-4 w-4" />
-                    {renderIcon(child.icon, "h-4 w-4")}
+                    <Dot className="h-3 w-3 opacity-50" strokeWidth={3} />
+                    {renderIcon(child.icon, "h-3.5 w-3.5")}
                     <span>{child.label}</span>
                     {child.badge && (
-                      <Badge variant="secondary" className="ml-auto h-5 px-2 text-xs">
+                      <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px] font-medium">
                         {child.badge}
                       </Badge>
                     )}
@@ -209,7 +209,7 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
           {renderIcon(item.icon, "h-4 w-4")}
           <span>{item.label}</span>
           {item.badge && (
-            <Badge variant="secondary" className="ml-auto h-5 px-2 text-xs">
+            <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] font-medium">
               {item.badge}
             </Badge>
           )}
@@ -221,63 +221,55 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm">
+            <Building2 className="h-5 w-5" strokeWidth={2.5} />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">
+          <div className="flex-1">
+            <h1 className="text-lg font-bold tracking-tight text-foreground">
               ViniSuite
             </h1>
-            <p className="text-xs text-muted-foreground font-medium">
-              
-            </p>
           </div>
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Current Role</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <div className="rounded-lg bg-muted/50 p-3 border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Current Role
-              </p>
-              <p className="text-sm font-medium text-foreground mt-1">
-                {formatRole(userRole)}
-              </p>
-            </div>
+            <SidebarMenu>
+              {navigationItems.map(renderNavigationItem)}
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navigationItems.map(renderNavigationItem)}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
       </SidebarContent>
       
       <SidebarFooter>
-        <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 border">
-          <Avatar className="h-10 w-10 ring-2 ring-muted">
-            <AvatarImage src={user?.avatar} alt={user?.fullName || ''} />
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-              {user && user.fullName ? getUserInitials(user.fullName) : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">
-              {user?.fullName || 'Current User'}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.email || 'user@vinisuite.com'}
-            </p>
+        <div className="space-y-2">
+          <div className="px-2 py-1.5">
+            <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-sidebar-accent/50">
+              <div className="flex h-6 items-center justify-center rounded-md bg-primary/10 px-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  {formatRole(userRole)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-sidebar-accent/50">
+            <Avatar className="h-9 w-9 border-2 border-sidebar-border/50">
+              <AvatarImage src={user?.avatar} alt={user?.fullName || ''} />
+              <AvatarFallback className="bg-gradient-to-br from-primary/90 to-primary text-primary-foreground font-semibold text-xs">
+                {user && user.fullName ? getUserInitials(user.fullName) : 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate leading-tight">
+                {user?.fullName || 'Current User'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">
+                {user?.email || 'user@vinisuite.com'}
+              </p>
+            </div>
           </div>
         </div>
       </SidebarFooter>
