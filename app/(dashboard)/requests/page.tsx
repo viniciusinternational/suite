@@ -39,6 +39,9 @@ export default function RequestsPage() {
   // Fetch requests - API will filter based on user role
   const { data: requests = [], isLoading, isFetching } = useRequests(filters);
 
+  // No mutations on this page; disable filters while refetching for consistent UX
+  const isMutating = isFetching;
+
   // Fetch departments for filter
   const { data: departments = [], isLoading: isLoadingDepartments } = useQuery({
     queryKey: ['departments'],
