@@ -9,40 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Trash2, Eye } from 'lucide-react'
-import { useDeductions, useDeleteDeduction } from '@/hooks/use-deductions'
-import { useAuthGuard } from '@/hooks/use-auth-guard'
-import { hasPermission } from '@/lib/permissions'
+import { useDeductions } from '@/hooks/use-deductions'
 import { Loader2 } from 'lucide-react'
 
 export function DeductionTable() {
-  const { user } = useAuthGuard()
   const router = useRouter()
   const { data: deductions = [], isLoading } = useDeductions()
-  const deleteDeduction = useDeleteDeduction()
-
-  const canEdit = user && hasPermission(user, 'edit_payroll')
-  const canDelete = user && hasPermission(user, 'delete_payroll')
-
-  const handleEdit = (id: string) => {
-    router.push(`/payroll/deductions/${id}/edit`)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this deduction? This action cannot be undone.')) {
-      try {
-        await deleteDeduction.mutateAsync(id)
-      } catch (error) {
-        console.error('Error deleting deduction:', error)
-      }
-    }
-  }
-
-  const handleView = (id: string) => {
-    router.push(`/payroll/deductions/${id}`)
-  }
 
   if (isLoading) {
     return (
@@ -72,7 +45,6 @@ export function DeductionTable() {
             <TableHead>Scope</TableHead>
             <TableHead>Period</TableHead>
             <TableHead>Status</TableHead>
-            {(canEdit || canDelete) && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -88,7 +60,11 @@ export function DeductionTable() {
               : 'N/A'
 
             return (
-              <TableRow key={deduction.id}>
+              <TableRow
+                key={deduction.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => router.push(`/payroll/deductions/${deduction.id}`)}
+              >
                 <TableCell className="font-medium">{deduction.title}</TableCell>
                 <TableCell>
                   {deduction.amount ? (
@@ -138,36 +114,6 @@ export function DeductionTable() {
                     {isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                {(canEdit || canDelete) && (
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleView(deduction.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(deduction.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(deduction.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
             )
           })}

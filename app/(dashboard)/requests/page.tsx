@@ -14,18 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { RequestTable } from '@/components/request/request-table';
-import { useRequests, useDeleteRequest } from '@/hooks/use-requests';
+import { useRequests } from '@/hooks/use-requests';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
 import { Plus, Search, FileText, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
@@ -38,11 +28,6 @@ export default function RequestsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
-
-  const deleteRequest = useDeleteRequest();
-
   // Build filters - role-based filtering is handled by API
   const filters = {
     search: searchQuery || undefined,
@@ -70,32 +55,6 @@ export default function RequestsPage() {
     approved: requests.filter((r: any) => r.status === 'approved').length,
     rejected: requests.filter((r: any) => r.status === 'rejected').length,
   };
-
-  const handleView = (request: any) => {
-    router.push(`/requests/${request.id}`);
-  };
-
-  const handleEdit = (request: any) => {
-    router.push(`/requests/${request.id}/edit`);
-  };
-
-  const handleDelete = (id: string) => {
-    setRequestToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!requestToDelete) return;
-    try {
-      await deleteRequest.mutateAsync(requestToDelete);
-      setDeleteDialogOpen(false);
-      setRequestToDelete(null);
-    } catch (error) {
-      console.error('Error deleting request:', error);
-    }
-  };
-
-  const isMutating = deleteRequest.isPending;
 
   return (
     <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
@@ -214,7 +173,7 @@ export default function RequestsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
-                  disabled={isMutating}
+                  disabled={false}
                 />
                 {isFetching && !isLoading && (
                   <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
@@ -273,50 +232,15 @@ export default function RequestsPage() {
               </Select>
             </div>
 
-            {/* Loading state for mutations */}
-            {isMutating && (
-              <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Processing...</span>
-              </div>
-            )}
-
             {/* Request Table */}
             <RequestTable
               requests={requests}
-              onView={handleView}
-              onEdit={user?.permissions?.edit_requests ? handleEdit : undefined}
-              onDelete={user?.permissions?.delete_requests ? handleDelete : undefined}
               isLoading={isLoading}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the request
-              and all associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRequestToDelete(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={deleteRequest.isPending}
-            >
-              {deleteRequest.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

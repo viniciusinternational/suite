@@ -44,7 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProjects } from "@/hooks/use-projects";
 import { useRequests } from "@/hooks/use-requests";
 import { usePayrolls } from "@/hooks/use-payrolls";
-import { useUsers } from "@/hooks/use-users";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useCreatePayment } from "@/hooks/use-payments";
 import {
   paymentMethodValues,
@@ -59,13 +59,15 @@ const paymentSchema = z
     projectId: z.string().optional(),
     requestFormId: z.string().optional(),
     payrollId: z.string().optional(),
+    payerAccountId: z.string().min(1, "Payer account is required"),
     currency: z.string().min(1),
     method: z.enum(paymentMethodValues),
     status: z.enum(paymentStatusValues),
     paymentDate: z.string().optional(),
     dueDate: z.string().optional(),
     scheduledFor: z.string().optional(),
-    payeeId: z.string().optional(),
+    payeeFullName: z.string().optional(),
+    payeePhone: z.string().optional(),
     requiresApproval: z.boolean().optional(),
     notes: z.string().optional(),
     reference: z.string().optional(),
@@ -113,7 +115,10 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
       currency: "NGN",
       method: "bank_transfer",
       status: "draft",
-      requiresApproval: false,
+      requiresApproval: true,
+      payerAccountId: "",
+      payeeFullName: "",
+      payeePhone: "",
     },
   });
 
@@ -121,7 +126,7 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
   const { data: projects = [] } = useProjects();
   const { data: requestForms = [] } = useRequests({ status: "approved" });
   const { data: payrolls = [] } = usePayrolls();
-  const { data: users = [] } = useUsers({ status: "active" });
+  const { data: accounts = [] } = useAccounts({ isActive: true });
 
   const [items, setItems] = useState<PaymentLineItem[]>([]);
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -130,6 +135,8 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
 
   const sourceType = form.watch("sourceType");
   const currency = form.watch("currency");
+  const payerAccountId = form.watch("payerAccountId");
+  const selectedAccount = accounts.find((a) => a.id === payerAccountId);
 
   const totals = useMemo(() => {
     const summary = items.reduce(
@@ -193,6 +200,13 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
     try {
       setFormError(null);
 
+      if (values.status === "paid" && selectedAccount && !selectedAccount.allowNegativeBalance) {
+        if (selectedAccount.balance < totals.total) {
+          setFormError(`Insufficient account balance. Available: ${selectedAccount.currency} ${selectedAccount.balance.toFixed(2)}`);
+          return;
+        }
+      }
+
       const payloadItems =
         values.sourceType === "requestForm"
           ? undefined
@@ -215,6 +229,7 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
           requestFormId: values.sourceType === "requestForm" ? values.requestFormId : undefined,
           payrollId: values.sourceType === "payroll" ? values.payrollId : undefined,
         },
+        payerAccountId: values.payerAccountId,
         currency: values.currency,
         method: values.method,
         status: values.status,
@@ -223,8 +238,9 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
         scheduledFor: values.scheduledFor || undefined,
         notes: values.notes || undefined,
         reference: values.reference || undefined,
-        requiresApproval: values.requiresApproval ?? false,
-        payeeId: values.payeeId || undefined,
+        requiresApproval: values.requiresApproval ?? true,
+        payeeFullName: values.payeeFullName || undefined,
+        payeePhone: values.payeePhone || undefined,
         amount: values.sourceType === "requestForm" ? undefined : totals.subtotal,
         taxAmount: values.sourceType === "requestForm" ? undefined : totals.tax,
         totalAmount: values.sourceType === "requestForm" ? undefined : totals.total,
@@ -252,7 +268,7 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
                 <FormLabel>Project</FormLabel>
                 <Select value={field.value ?? undefined} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
                   </FormControl>
@@ -279,7 +295,7 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
                 <FormLabel>Request Form</FormLabel>
                 <Select value={field.value ?? undefined} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a request form" />
                     </SelectTrigger>
                   </FormControl>
@@ -306,7 +322,7 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
                 <FormLabel>Payroll</FormLabel>
                 <Select value={field.value ?? undefined} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select payroll" />
                     </SelectTrigger>
                   </FormControl>
@@ -356,222 +372,312 @@ export function PaymentCreateForm({ onCancel, onSuccess }: PaymentCreateFormProp
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="sourceType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Source Type</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select source" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {paymentSourceValues.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {option === "requestForm"
-                                    ? "Request Form"
-                                    : option === "none"
-                                    ? "Standalone"
-                                    : option.charAt(0).toUpperCase() + option.slice(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="currency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Currency</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Currency (e.g. NGN, USD)" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {paymentStatusValues.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {option.replace(/_/g, " ")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="method"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Method</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select method" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {paymentMethodValues.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {option.replace(/_/g, " ")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormField
-                      control={form.control}
-                      name="paymentDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Due Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="scheduledFor"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Scheduled For</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Section 1 — Source & account */}
+                  <div className="space-y-4" role="group" aria-labelledby="section-source-heading">
+                    <div>
+                      <h2 id="section-source-heading" className="text-sm font-medium text-foreground">
+                        Source & account
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Where the payment comes from and which account pays.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="sourceType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Source Type</FormLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select source" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {paymentSourceValues.map(option => (
+                                  <SelectItem key={option} value={option}>
+                                    {option === "requestForm"
+                                      ? "Request Form"
+                                      : option === "none"
+                                      ? "Standalone"
+                                      : option.charAt(0).toUpperCase() + option.slice(1)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {renderSourceFields()}
+                      <FormField
+                        control={form.control}
+                        name="payerAccountId"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Payer Account *</FormLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts.map((acc) => (
+                                  <SelectItem key={acc.id} value={acc.id}>
+                                    {acc.name} ({acc.code}) - {acc.currency} {acc.balance.toFixed(2)}
+                                  </SelectItem>
+                                ))}
+                                {accounts.length === 0 && (
+                                  <SelectItem value="_none" disabled>
+                                    No active accounts. Create an account first.
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {selectedAccount && (
+                              <p className="text-xs text-muted-foreground">
+                                Balance: {selectedAccount.currency} {selectedAccount.balance.toFixed(2)}
+                                {selectedAccount.allowNegativeBalance && " (negative balance allowed)"}
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
                   <Separator />
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {renderSourceFields()}
-
-                    <FormField
-                      control={form.control}
-                      name="payeeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payee</FormLabel>
-                          <Select value={field.value ?? undefined} onValueChange={field.onChange}>
+                  {/* Section 2 — Payment basics */}
+                  <div className="space-y-4" role="group" aria-labelledby="section-basics-heading">
+                    <div>
+                      <h2 id="section-basics-heading" className="text-sm font-medium text-foreground">
+                        Payment basics
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Currency, method, status, and payee details.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Currency</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select payee" />
-                              </SelectTrigger>
+                              <Input placeholder="Currency (e.g. NGN, USD)" {...field} />
                             </FormControl>
-                            <SelectContent>
-                              {users.map(user => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.fullName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="method"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payment Method</FormLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {paymentMethodValues.map(option => (
+                                  <SelectItem key={option} value={option}>
+                                    {option.replace(/_/g, " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Choose status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {paymentStatusValues.map(option => (
+                                  <SelectItem key={option} value={option}>
+                                    {option.replace(/_/g, " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="payeeFullName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payee full name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Full name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="payeePhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payee phone</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Phone number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Separator />
+
+                  {/* Section 3 — Dates */}
+                  <div className="space-y-4" role="group" aria-labelledby="section-dates-heading">
+                    <div>
+                      <h2 id="section-dates-heading" className="text-sm font-medium text-foreground">
+                        Dates
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Payment, due, and scheduled dates.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <FormField
+                        control={form.control}
+                        name="paymentDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payment Date</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Due Date</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="scheduledFor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Scheduled For</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Section 4 — Reference & approval */}
+                  <div className="space-y-4" role="group" aria-labelledby="section-reference-heading">
+                    <div>
+                      <h2 id="section-reference-heading" className="text-sm font-medium text-foreground">
+                        Reference & approval
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Optional reference and approval workflow.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="reference"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Reference</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Reference or memo" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="requiresApproval"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Requires approval</FormLabel>
+                            <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2">
+                              <span className="text-sm text-muted-foreground">
+                                Route payment through the approval workflow.
+                              </span>
+                              <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Section 5 — Notes */}
+                  <div className="space-y-4" role="group" aria-labelledby="section-notes-heading">
+                    <div>
+                      <h2 id="section-notes-heading" className="text-sm font-medium text-foreground">
+                        Notes
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Additional context for this payment.
+                      </p>
+                    </div>
                     <FormField
                       control={form.control}
-                      name="reference"
+                      name="notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Reference</FormLabel>
                           <FormControl>
-                            <Input placeholder="Reference or memo" {...field} />
+                            <Textarea rows={4} placeholder="Additional context for this payment" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="requiresApproval"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Approval Required</FormLabel>
-                          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2">
-                            <span className="text-sm text-muted-foreground">
-                              Route payment through the approval workflow.
-                            </span>
-                            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                          <Textarea rows={4} placeholder="Additional context for this payment" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
 

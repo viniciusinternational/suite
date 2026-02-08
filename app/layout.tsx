@@ -4,6 +4,7 @@ import "./globals.css";
 // import "@assistant-ui/styles/index.css";
 // import "@assistant-ui/styles/markdown.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { APP_NAME, APP_DESCRIPTION } from "@/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VinSuite - Dashboard",
-  description: "Comprehensive dashboard for Vinicius Company",
+  title: `${APP_NAME} - Dashboard`,
+  description: APP_DESCRIPTION,
 };
 
 export default function RootLayout({

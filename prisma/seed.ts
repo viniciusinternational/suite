@@ -2,14 +2,69 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// All permission keys (must match types/auth.ts) – used for full admin permissions and Admin role
+const ALL_PERMISSION_KEYS = [
+  'view_dashboard',
+  'view_projects', 'add_projects', 'edit_projects', 'delete_projects', 'approve_projects',
+  'view_users', 'add_users', 'edit_users', 'delete_users',
+  'view_departments', 'add_departments', 'edit_departments', 'delete_departments',
+  'view_requests', 'add_requests', 'edit_requests', 'delete_requests', 'approve_requests',
+  'view_payments', 'add_payments', 'edit_payments', 'delete_payments', 'approve_payments',
+  'view_payroll', 'add_payroll', 'edit_payroll', 'delete_payroll',
+  'view_leave', 'add_leave', 'edit_leave', 'delete_leave', 'approve_leave',
+  'view_reports',
+  'view_audit_logs',
+  'view_events', 'add_events', 'edit_events', 'delete_events',
+  'view_approvals', 'approve_approvals', 'add_approvers', 'manage_approvers',
+  'view_settings', 'edit_settings',
+  'view_team', 'add_teams', 'edit_teams', 'delete_teams',
+  'view_timesheets', 'add_timesheets', 'edit_timesheets', 'delete_timesheets',
+  'view_performance', 'add_performance', 'edit_performance', 'delete_performance',
+  'view_memos', 'add_memos', 'edit_memos', 'delete_memos',
+  'view_documents', 'add_documents', 'edit_documents', 'delete_documents',
+  'view_ai_assistant',
+  'view_roles', 'add_roles', 'edit_roles', 'delete_roles',
+  'view_accounts', 'create_accounts', 'edit_accounts', 'manage_accounts',
+] as const;
+
+const fullPermissions = Object.fromEntries(ALL_PERMISSION_KEYS.map((k) => [k, true])) as Record<string, boolean>;
+
 async function main() {
   console.log('Starting seed...');
 
-  // Clear existing data
+  // Clear existing data (order matters: delete dependents before parents)
   console.log('Clearing existing data...');
+  await prisma.auditLog.deleteMany();
+  await prisma.accountTransaction.deleteMany();
+  await prisma.account.deleteMany();
+  // Payment and request-form chain (must run before Department)
+  await prisma.paymentApproval.deleteMany();
+  await prisma.paymentInstallment.deleteMany();
+  await prisma.paymentItem.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.requestApproval.deleteMany();
+  await prisma.requestComment.deleteMany();
+  await prisma.requestForm.deleteMany();
+  // Project chain (Project references Department)
+  await prisma.approval.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.milestone.deleteMany();
+  await prisma.project.deleteMany();
+  // Event/Memo/Deduction/Allowance reference Department (many-to-many or relations)
+  await prisma.event.deleteMany();
+  await prisma.memo.deleteMany();
+  await prisma.payrollDeductionApplication.deleteMany();
+  await prisma.payrollAllowanceApplication.deleteMany();
+  await prisma.deduction.deleteMany();
+  await prisma.allowance.deleteMany();
   await prisma.departmentUnit.deleteMany();
   await prisma.department.deleteMany();
+  // Payroll and user-dependent (before User)
+  await prisma.payrollApproval.deleteMany();
+  await prisma.payrollEntry.deleteMany();
+  await prisma.payroll.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.role.deleteMany();
 
   // ========== FIRST PASS: Create Departments Without Heads ==========
   console.log('Creating departments...');
@@ -109,6 +164,17 @@ async function main() {
   const execDept = ensureDepartment('EXEC');
   ['HR', 'FIN', 'ADMIN', 'SEC', 'IT', 'LEGAL'].forEach(ensureDepartment);
 
+  // ========== Create Accounts ==========
+  console.log('Creating accounts...');
+  const accounts = [
+    { name: 'Main Operating Account', code: 'OP-001', currency: 'NGN', description: 'Primary operations account', allowNegativeBalance: false },
+    { name: 'Payroll Account', code: 'PAY-001', currency: 'NGN', description: 'Payroll disbursements', allowNegativeBalance: false },
+  ];
+  const createdAccounts = await Promise.all(
+    accounts.map((acc) => prisma.account.create({ data: acc }))
+  );
+  console.log(`Created ${createdAccounts.length} accounts`);
+
   // ========== SECOND PASS: Create Users ==========
   console.log('Creating users...');
   const users = [
@@ -129,84 +195,7 @@ async function main() {
       salary: 15000,
       avatar: '/avatars/person.jpg',
       isActive: true,
-      permissions: {
-        // Dashboard
-        view_dashboard: true,
-        // Projects Module
-        view_projects: true,
-        add_projects: true,
-        edit_projects: true,
-        delete_projects: true,
-        approve_projects: true,
-        // Users Module
-        view_users: true,
-        add_users: true,
-        edit_users: true,
-        delete_users: true,
-        // Departments Module
-        view_departments: true,
-        add_departments: true,
-        edit_departments: true,
-        delete_departments: true,
-        // Requests Module
-        view_requests: true,
-        add_requests: true,
-        edit_requests: true,
-        delete_requests: true,
-        approve_requests: true,
-        // Payments Module
-        view_payments: true,
-        add_payments: true,
-        edit_payments: true,
-        delete_payments: true,
-        approve_payments: true,
-        // Payroll Module
-        view_payroll: true,
-        add_payroll: true,
-        edit_payroll: true,
-        delete_payroll: true,
-        // Leave Module
-        view_leave: true,
-        add_leave: true,
-        edit_leave: true,
-        delete_leave: true,
-        approve_leave: true,
-        // Reports Module
-        view_reports: true,
-        // Audit Logs Module
-        view_audit_logs: true,
-        // Events Module
-        view_events: true,
-        add_events: true,
-        edit_events: true,
-        delete_events: true,
-        // Approvals Module
-        view_approvals: true,
-        approve_approvals: true,
-        // Settings Module
-        view_settings: true,
-        edit_settings: true,
-        // Team Module
-        view_team: true,
-        edit_team: true,
-        // Timesheets Module
-        view_timesheets: true,
-        add_timesheets: true,
-        edit_timesheets: true,
-        delete_timesheets: true,
-        // Performance Module
-        view_performance: true,
-        add_performance: true,
-        edit_performance: true,
-        delete_performance: true,
-        // Memos Module
-        view_memos: true,
-        add_memos: true,
-        edit_memos: true,
-        delete_memos: true,
-        // AI Assistant Module
-        view_ai_assistant: true,
-      } as any,
+      permissions: fullPermissions,
     },
     {
       firstName: 'Safullahi',
@@ -452,6 +441,32 @@ async function main() {
   // Map user emails to user IDs
   const userEmailToId = new Map(createdUsers.map((u) => [u.email, u.id]));
 
+  // ========== Create default Role templates ==========
+  console.log('Creating default roles...');
+  const roleResult = await prisma.role.createMany({
+    data: [
+      {
+        name: 'Admin',
+        code: 'ADMIN',
+        description: 'Full access to all modules',
+        permissions: fullPermissions,
+      },
+      {
+        name: 'Employee',
+        code: 'EMPLOYEE',
+        description: 'Basic employee access',
+        permissions: {
+          view_dashboard: true,
+          view_team: true,
+          view_timesheets: true,
+          view_events: true,
+          view_memos: true,
+          view_documents: true,
+        } as Record<string, boolean>,
+      },
+    ],
+  });
+
   // ========== THIRD PASS: Update Departments with Heads ==========
   console.log('Assigning department heads...');
   const departmentHeads = [
@@ -613,6 +628,7 @@ async function main() {
   console.log('Seed completed successfully!');
   console.log(`Created: ${createdDepartments.length} departments`);
   console.log(`Created: ${createdUsers.length} users`);
+  console.log(`Created: ${roleResult.count} roles`);
   console.log(`Prepared: ${departmentUnits.length} department units`);
 }
 

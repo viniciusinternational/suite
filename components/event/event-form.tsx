@@ -11,9 +11,11 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useCreateEvent, useUpdateEvent } from '@/hooks/use-events'
 import axios from '@/lib/axios'
+import { MEETING_URL } from '@/constants'
 import type { Department, DepartmentUnit, Event, User } from '@/types'
 import { X, Plus, Loader2 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
 
@@ -152,7 +154,8 @@ export function EventForm({ event, onSuccess }: Props) {
       setIsCreatingMeeting(true)
       setMeetingError(null)
       
-      const response = await fetch('https://meet.viniciusint.com/api/meetings', {
+            const baseUrl = MEETING_URL.replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/api/meetings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +234,8 @@ export function EventForm({ event, onSuccess }: Props) {
         return // Abort submission
       }
       // Meeting creation succeeded - proceed with event creation
-      meetingLink = `https://meet.viniciusint.com/join/${roomname}`
+      const baseUrl = MEETING_URL.replace(/\/$/, '');
+      meetingLink = `${baseUrl}/join/${roomname}`;
       form.setValue('link', meetingLink)
       setMeetingError(null) // Clear error on success
     }
@@ -290,243 +294,224 @@ export function EventForm({ event, onSuccess }: Props) {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="event-form">
-        {/* Row 1: Title */}
-        <div className="space-y-2">
-          <Label>Title *</Label>
-          <Input {...form.register('title')} placeholder="Event title" />
-          {form.formState.errors.title && (
-            <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
-          )}
-        </div>
-
-        {/* Row 2: Description (full width) */}
-        <div className="space-y-2">
-          <Label>Description</Label>
-          <Textarea {...form.register('description')} placeholder="Details about the event" rows={3} />
-        </div>
-
-        {/* Row 3: Start and End Date */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Start *</Label>
-            <Input type="datetime-local" {...form.register('startDateTime')} />
-            {form.formState.errors.startDateTime && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.startDateTime.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>End Time {isAllDay ? '(all-day)' : '*'}</Label>
-            <Input
-              type="time"
-              step={60}
-              disabled={isAllDay}
-              {...form.register('endTime')}
-            />
-            {form.formState.errors.endTime && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.endTime.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Controller
-            name="isAllDay"
-            control={form.control}
-            render={({ field }) => (
-              <div className="flex flex-col gap-2 rounded-md border p-3">
-                <div>
-                  <Label className="text-sm font-medium">All Day Event</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Runs for the entire day. End time not required.
-                  </p>
-                </div>
-                <Switch
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                  className="self-start"
-                />
+      <form onSubmit={form.handleSubmit(onSubmit)} id="event-form" className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column – Basic info */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Basic info</p>
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input {...form.register('title')} placeholder="Event title" />
+              {form.formState.errors.title && (
+                <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea {...form.register('description')} placeholder="Details about the event" rows={2} className="resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start *</Label>
+                <Input type="datetime-local" {...form.register('startDateTime')} />
+                {form.formState.errors.startDateTime && (
+                  <p className="text-sm text-destructive">{form.formState.errors.startDateTime.message}</p>
+                )}
               </div>
-            )}
-          />
-
-          <Controller
-            name="isGlobal"
-            control={form.control}
-            render={({ field }) => (
-              <div className="flex flex-col gap-2 rounded-md border p-3">
-                <div>
-                  <Label className="text-sm font-medium">Global Event</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Visible to everyone regardless of selected audiences.
-                  </p>
-                </div>
-                <Switch
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                  className="self-start"
+              <div className="space-y-2">
+                <Label>End Time {isAllDay ? '(all-day)' : '*'}</Label>
+                <Input
+                  type="time"
+                  step={60}
+                  disabled={isAllDay}
+                  {...form.register('endTime')}
                 />
+                {form.formState.errors.endTime && (
+                  <p className="text-sm text-destructive">{form.formState.errors.endTime.message}</p>
+                )}
               </div>
-            )}
-          />
-
-          <Controller
-            name="createVirtualMeeting"
-            control={form.control}
-            render={({ field }) => (
-              <div className="flex flex-col gap-2 rounded-md border p-3">
-                <div>
-                  <Label className="text-sm font-medium">Create Virtual Meeting</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Automatically create a virtual meeting room for this event.
-                  </p>
-                  {isCreatingMeeting && (
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Creating meeting room...</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Controller
+                name="isAllDay"
+                control={form.control}
+                render={({ field }) => (
+                  <label className="flex items-center gap-2 cursor-pointer rounded-md border p-3 hover:bg-muted/30 transition-colors">
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                    />
+                    <span className="text-sm font-medium">All day event</span>
+                  </label>
+                )}
+              />
+              <Controller
+                name="isGlobal"
+                control={form.control}
+                render={({ field }) => (
+                  <label className="flex items-center gap-2 cursor-pointer rounded-md border p-3 hover:bg-muted/30 transition-colors">
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                    />
+                    <span className="text-sm font-medium">Global event</span>
+                  </label>
+                )}
+              />
+              <Controller
+                name="createVirtualMeeting"
+                control={form.control}
+                render={({ field }) => (
+                  <label className={cn(
+                    "flex items-start gap-2 cursor-pointer rounded-md border p-3 hover:bg-muted/30 transition-colors col-span-2",
+                    isCreatingMeeting && "opacity-70 pointer-events-none"
+                  )}>
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked)
+                        if (!checked) setMeetingError(null)
+                      }}
+                      disabled={isCreatingMeeting}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <span className="text-sm font-medium">Create virtual meeting</span>
+                      {isCreatingMeeting && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Creating meeting room...</span>
+                        </div>
+                      )}
+                      {meetingError && (
+                        <p className="text-xs text-destructive">{meetingError}</p>
+                      )}
                     </div>
-                  )}
-                  {meetingError && (
-                    <p className="text-xs text-red-600 mt-2">{meetingError}</p>
-                  )}
+                  </label>
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              {isLoadingTags ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading tags...</span>
                 </div>
-                <Switch 
-                  checked={field.value ?? false} 
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked)
-                    if (!checked) {
-                      setMeetingError(null)
-                    }
-                  }}
-                  disabled={isCreatingMeeting}
-                  className="self-start"
+              ) : (
+                <MultiSelect
+                  options={tagOptions}
+                  selected={form.watch('tags') || []}
+                  onChange={(selected) => form.setValue('tags', selected)}
+                  placeholder="Select tags..."
+                  searchPlaceholder="Search tags..."
+                  emptyMessage="No tags found"
+                  className="w-full"
                 />
+              )}
+            </div>
+            {createVirtualMeetingEnabled ? (
+              <div className="space-y-2 rounded-md border p-3 bg-muted/40">
+                <Label>Meeting Link</Label>
+                {linkValue ? (
+                  <a
+                    href={linkValue}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline break-all"
+                  >
+                    {linkValue}
+                  </a>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    A secure meeting link will be generated automatically once the event is saved.
+                  </p>
+                )}
+                {form.formState.errors.createVirtualMeeting && (
+                  <p className="text-sm text-destructive">{form.formState.errors.createVirtualMeeting.message}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Link</Label>
+                <Input {...form.register('link')} placeholder="https://..." />
               </div>
             )}
-          />
-        </div>
+          </div>
 
-        {/* Row 4: Tags (always visible) */}
-        <div className="space-y-2">
-          <Label>Tags</Label>
-          {isLoadingTags ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading tags...</span>
-            </div>
-          ) : (
-            <MultiSelect
-              options={tagOptions}
-              selected={form.watch('tags') || []}
-              onChange={(selected) => form.setValue('tags', selected)}
-              placeholder="Select tags..."
-              searchPlaceholder="Search tags..."
-              emptyMessage="No tags found"
-              className="w-full"
-            />
-          )}
-        </div>
-
-        {/* Conditional: Link field (rendered last for efficiency) */}
-        {createVirtualMeetingEnabled ? (
-          <div className="space-y-2 rounded-md border p-3 bg-muted/40">
-            <Label>Meeting Link</Label>
-            {linkValue ? (
-              <a
-                href={linkValue}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary underline break-all"
-              >
-                {linkValue}
-              </a>
+          {/* Right column – Permissions / audience */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Visibility</p>
+            {isGlobal ? (
+              <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+                Visible to everyone. This event will be shared with the entire organization.
+              </div>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                A secure meeting link will be generated automatically once the event is saved.
-              </p>
+              <>
+                <p className="text-xs text-muted-foreground">Who can see this event. Leave all empty to restrict to yourself.</p>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label>Users</Label>
+                    {isLoadingUsers ? (
+                      <div className="flex items-center gap-2 text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading users...</span>
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={userOptions}
+                        selected={form.watch('userIds') || []}
+                        onChange={(selected) => form.setValue('userIds', selected)}
+                        placeholder="Select users..."
+                        searchPlaceholder="Search users..."
+                        emptyMessage="No users found"
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Departments</Label>
+                    {isLoadingDepartments ? (
+                      <div className="flex items-center gap-2 text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading departments...</span>
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={departmentOptions}
+                        selected={form.watch('departmentIds') || []}
+                        onChange={(selected) => form.setValue('departmentIds', selected)}
+                        placeholder="Select departments..."
+                        searchPlaceholder="Search departments..."
+                        emptyMessage="No departments found"
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Units</Label>
+                    {isLoadingDepartments ? (
+                      <div className="flex items-center gap-2 text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading units...</span>
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={unitOptions}
+                        selected={form.watch('unitIds') || []}
+                        onChange={(selected) => form.setValue('unitIds', selected)}
+                        placeholder="Select units..."
+                        searchPlaceholder="Search units..."
+                        emptyMessage="No units found"
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
             )}
-            {form.formState.errors.createVirtualMeeting && (
-              <p className="text-sm text-red-600 mt-1">
-                {form.formState.errors.createVirtualMeeting.message}
-              </p>
-            )}
           </div>
-        ) : (
-          <div className="space-y-2">
-            <Label>Link</Label>
-            <Input {...form.register('link')} placeholder="https://..." />
-          </div>
-        )}
-
-        {/* Conditional: Audience selectors (rendered last for efficiency) */}
-        {!isGlobal ? (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label>Users</Label>
-              {isLoadingUsers ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Loading users...</span>
-                </div>
-              ) : (
-                <MultiSelect
-                  options={userOptions}
-                  selected={form.watch('userIds') || []}
-                  onChange={(selected) => form.setValue('userIds', selected)}
-                  placeholder="Select users..."
-                  searchPlaceholder="Search users..."
-                  emptyMessage="No users found"
-                  className="w-full"
-                />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Departments</Label>
-              {isLoadingDepartments ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Loading departments...</span>
-                </div>
-              ) : (
-                <MultiSelect
-                  options={departmentOptions}
-                  selected={form.watch('departmentIds') || []}
-                  onChange={(selected) => form.setValue('departmentIds', selected)}
-                  placeholder="Select departments..."
-                  searchPlaceholder="Search departments..."
-                  emptyMessage="No departments found"
-                  className="w-full"
-                />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Units</Label>
-              {isLoadingDepartments ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Loading units...</span>
-                </div>
-              ) : (
-                <MultiSelect
-                  options={unitOptions}
-                  selected={form.watch('unitIds') || []}
-                  onChange={(selected) => form.setValue('unitIds', selected)}
-                  placeholder="Select units..."
-                  searchPlaceholder="Search units..."
-                  emptyMessage="No units found"
-                  className="w-full"
-                />
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
-            This event is marked as global, so it will be shared with the entire organization.
-            Audience selectors are hidden.
-          </div>
-        )}
+        </div>
       </form>
 
       {/* Action Buttons */}
@@ -554,7 +539,7 @@ export function EventForm({ event, onSuccess }: Props) {
           ) : (
             <>
               <Plus className="h-4 w-4" />
-              {event?.id ? 'Save Changes' : 'Add'}
+              Save
             </>
           )}
         </Button>

@@ -13,7 +13,7 @@ import { DocumentDetailsView } from '@/components/document/document-details-view
 import { TagsManager } from '@/components/document/tags-manager';
 import { CorrespondentsManager } from '@/components/document/correspondents-manager';
 import { DocumentTypesManager } from '@/components/document/document-types-manager';
-import { useDocuments, useDeleteDocument } from '@/hooks/use-documents';
+import { useDocuments } from '@/hooks/use-documents';
 import { useTags } from '@/hooks/use-tags';
 import { useCorrespondents } from '@/hooks/use-correspondents';
 import { useDocumentTypes } from '@/hooks/use-document-types';
@@ -21,23 +21,11 @@ import { hasPermission } from '@/lib/permissions';
 import type { DocumentFilters as DocumentFiltersType } from '@/types';
 import type { LayoutView } from '@/components/document/layout-toggle';
 import { FileText, Tag, User, FolderOpen } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-
 export default function DocumentsPage() {
   const { user } = useAuthGuard(['view_documents']);
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<DocumentFiltersType>({});
-  const [deleteDocumentId, setDeleteDocumentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('documents');
   const [layoutView, setLayoutView] = useState<LayoutView>('list');
 
@@ -63,36 +51,13 @@ export default function DocumentsPage() {
     ...filters,
     search: search || undefined,
   });
-  const deleteMutation = useDeleteDocument();
 
   const canAdd = hasPermission(user, 'add_documents');
-  const canEdit = hasPermission(user, 'edit_documents');
-  const canDelete = hasPermission(user, 'delete_documents');
-
-  const handleDelete = async () => {
-    if (!deleteDocumentId) return;
-    try {
-      await deleteMutation.mutateAsync(deleteDocumentId);
-      setDeleteDocumentId(null);
-    } catch (error) {
-      console.error('Error deleting document:', error);
-    }
-  };
-
-  const handleEdit = (document: any) => {
-    router.push(`/documents/${document.id}/edit`);
-  };
-
-  const isMutating = deleteMutation.isPending;
 
   // Render document view based on layout
   const renderDocumentView = () => {
     const commonProps = {
       documents,
-      onEdit: canEdit ? handleEdit : undefined,
-      onDelete: canDelete ? (id: string) => setDeleteDocumentId(id) : undefined,
-      canEdit,
-      canDelete,
       isLoading,
     };
 
@@ -162,11 +127,6 @@ export default function DocumentsPage() {
             </TabsList>
 
             <TabsContent value="documents" className="mt-0">
-              {isMutating && (
-                <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground mb-4">
-                  <span className="text-sm">Processing...</span>
-                </div>
-              )}
               {renderDocumentView()}
             </TabsContent>
 
@@ -184,27 +144,6 @@ export default function DocumentsPage() {
           </Tabs>
         </div>
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteDocumentId} onOpenChange={(open) => !open && setDeleteDocumentId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this document? This action cannot be undone and will permanently remove the document from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

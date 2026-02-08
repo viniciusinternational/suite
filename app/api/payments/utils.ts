@@ -107,6 +107,15 @@ export const paymentWithRelations = Prisma.validator<Prisma.PaymentArgs>()({
         status: true,
       },
     },
+    payerAccount: {
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        balance: true,
+        currency: true,
+      },
+    },
   },
 });
 
@@ -320,6 +329,8 @@ export function serializePayment(payment: PaymentWithRelations): Payment {
       : undefined,
     approverIds: payment.approverIds ?? [],
     payeeId: payment.payeeId ?? undefined,
+    payeeFullName: (payment as { payeeFullName?: string }).payeeFullName ?? undefined,
+    payeePhone: (payment as { payeePhone?: string }).payeePhone ?? undefined,
     payee: payment.payee
       ? {
           id: payment.payee.id,
@@ -328,6 +339,15 @@ export function serializePayment(payment: PaymentWithRelations): Payment {
         }
       : undefined,
     payerAccountId: payment.payerAccountId ?? undefined,
+    payerAccount: payment.payerAccount
+      ? {
+          id: payment.payerAccount.id,
+          name: payment.payerAccount.name,
+          code: payment.payerAccount.code,
+          balance: payment.payerAccount.balance,
+          currency: payment.payerAccount.currency,
+        }
+      : undefined,
     currency: payment.currency,
     exchangeRate: payment.exchangeRate ?? undefined,
     isForeignCurrency: payment.isForeignCurrency ?? undefined,

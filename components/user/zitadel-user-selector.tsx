@@ -49,16 +49,18 @@ export function ZitadelUserSelector({ onSelect, selectedUserId }: ZitadelUserSel
 
       {/* Error State */}
       {error && (
-        <div className="flex items-center justify-center p-4 border border-red-200 bg-red-50 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-          <span className="text-sm text-red-600">Failed to fetch users from Zitadel</span>
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <span className="text-sm text-destructive">Failed to fetch users from Zitadel</span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => refetch()}
-            className="ml-2"
+            className="shrink-0"
+            aria-label="Retry"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Retry
           </Button>
         </div>
       )}
@@ -67,7 +69,7 @@ export function ZitadelUserSelector({ onSelect, selectedUserId }: ZitadelUserSel
       {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center space-x-3 p-3 border rounded-lg">
+            <div key={i} className="flex items-center space-x-3 rounded-lg border border-border/50 p-3">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-4 w-32" />
@@ -80,23 +82,25 @@ export function ZitadelUserSelector({ onSelect, selectedUserId }: ZitadelUserSel
 
       {/* Users List */}
       {!isLoading && !error && users && (
-        <div className="border rounded-lg max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto rounded-lg border border-border/50">
           {users.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
-              <Users className="h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-sm text-gray-600">
+              <Users className="mb-4 h-12 w-12 text-muted-foreground" aria-hidden />
+              <p className="text-sm font-medium text-foreground">
                 {search ? 'No users found matching your search' : 'No users found'}
               </p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/50">
               {users.map((user) => (
                 <button
                   key={user.id}
                   type="button"
                   onClick={() => handleUserSelect(user)}
-                  className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                    selectedUserId === user.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                  className={`w-full rounded-none p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    selectedUserId === user.id
+                      ? 'border-l-4 border-l-primary bg-primary/5'
+                      : 'hover:bg-muted/30'
                   }`}
                 >
                   <div className="flex items-center space-x-3">

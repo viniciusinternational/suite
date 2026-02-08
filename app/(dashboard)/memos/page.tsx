@@ -9,9 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MemoTable } from '@/components/memo/memo-table'
-import { useDeleteMemo, useMemos } from '@/hooks/use-memos'
+import { useMemos } from '@/hooks/use-memos'
 import { hasPermission } from '@/lib/permissions'
-import type { Memo } from '@/types'
 import { Plus, Search, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react'
 
 export default function MemosPage() {
@@ -22,7 +21,6 @@ export default function MemosPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
   const { data: memos = [], isLoading, isFetching } = useMemos({ isActive: undefined })
-  const deleteMutation = useDeleteMemo()
 
   // Calculate analytics
   const analytics = useMemo(() => {
@@ -51,22 +49,8 @@ export default function MemosPage() {
     return true
   })
 
-  const isMutating = deleteMutation.isPending
-
   // Check permissions
   const canAddMemo = user && hasPermission(user, 'add_memos')
-  const canEditMemo = user && hasPermission(user, 'edit_memos')
-  const canDeleteMemo = user && hasPermission(user, 'delete_memos')
-
-  const handleEdit = (memo: Memo) => {
-    router.push(`/memos/${memo.id}/edit`)
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this memo?')) {
-      deleteMutation.mutate(id)
-    }
-  }
 
   if (!user) return null
 
@@ -181,7 +165,7 @@ export default function MemosPage() {
                 placeholder="Search memos..." 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)}
-                disabled={isMutating}
+                disabled={false}
               />
               {isFetching && !isLoading && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
@@ -190,7 +174,7 @@ export default function MemosPage() {
             {isLoading ? (
               <Skeleton className="h-10 w-[180px]" />
             ) : (
-              <Select value={priorityFilter} onValueChange={setPriorityFilter} disabled={isMutating}>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -214,19 +198,8 @@ export default function MemosPage() {
           <CardDescription>View and manage all memos in the system</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Loading state for mutations */}
-          {isMutating && (
-            <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground mb-4">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Processing...</span>
-            </div>
-          )}
-          <MemoTable 
+          <MemoTable
             memos={filteredMemos}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canEdit={canEditMemo}
-            canDelete={canDeleteMemo}
             isLoading={isLoading}
           />
         </CardContent>

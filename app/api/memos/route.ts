@@ -8,7 +8,8 @@ const memoBodySchema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  expiresAt: z.string().datetime().optional().or(z.literal('').optional()),
+  expiresAt: z.string().optional(),
+  isGlobal: z.boolean().optional().default(false),
   userIds: z.array(z.string()).optional(),
   departmentIds: z.array(z.string()).optional(),
 })
@@ -61,6 +62,8 @@ export async function GET(request: NextRequest) {
         { users: { some: { id: currentUserId } } },
         // Also include memos created by the current user
         { createdById: currentUserId },
+        // Global memos are visible to everyone
+        { isGlobal: true },
       ]
       
       // If user belongs to a department, include memos targeted to that department
@@ -131,9 +134,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // When isGlobal is true, ignore userIds and departmentIds
+    const isGlobal = data.isGlobal === true
+
     // Convert userIds (emails or IDs) to actual user IDs
     let resolvedUserIds: string[] = []
-    if (data.userIds && data.userIds.length > 0) {
+    if (!isGlobal && data.userIds && data.userIds.length > 0) {
       const validUserInputs = data.userIds.filter(input => input && input.trim())
       if (validUserInputs.length > 0) {
         // Check if inputs are emails (contain @) or IDs (CUID format)
@@ -187,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     // Convert departmentIds (codes, names, or IDs) to actual department IDs
     let resolvedDepartmentIds: string[] = []
-    if (data.departmentIds && data.departmentIds.length > 0) {
+    if (!isGlobal && data.departmentIds && data.departmentIds.length > 0) {
       const validDeptInputs = data.departmentIds.filter(input => input && input.trim())
       if (validDeptInputs.length > 0) {
         // Check if inputs are codes, names, or IDs
@@ -251,10 +257,15 @@ export async function POST(request: NextRequest) {
         title: data.title,
         content: data.content,
         priority: data.priority,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+        isGlobal,
+        expiresAt: (() => {
+          if (!data.expiresAt || typeof data.expiresAt !== 'string') return undefined
+          const d = new Date(data.expiresAt)
+          return isNaN(d.getTime()) ? undefined : d
+        })(),
         createdById: validCreatedById,
-        users: resolvedUserIds.length > 0 ? { connect: resolvedUserIds.map((id) => ({ id })) } : undefined,
-        departments: resolvedDepartmentIds.length > 0 ? { connect: resolvedDepartmentIds.map((id) => ({ id })) } : undefined,
+        users: isGlobal ? undefined : (resolvedUserIds.length > 0 ? { connect: resolvedUserIds.map((id) => ({ id })) } : undefined),
+        departments: isGlobal ? undefined : (resolvedDepartmentIds.length > 0 ? { connect: resolvedDepartmentIds.map((id) => ({ id })) } : undefined),
       },
       include: {
         users: { select: { id: true, fullName: true, email: true, role: true } },

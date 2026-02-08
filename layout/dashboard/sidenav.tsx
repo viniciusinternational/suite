@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard,
   Users,
@@ -29,11 +30,14 @@ import {
   Calculator,
   Archive,
   FilePlus,
-  HelpCircle
+  HelpCircle,
+  ShieldCheck,
+  Wallet
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { getNavigationForPermissions } from '@/lib/navigation';
+import { APP_NAME, PLACEHOLDER_EMAIL } from '@/constants';
 import type { NavigationItem, UserRole, User as UserType } from '@/types';
 import {
   Sidebar,
@@ -77,6 +81,8 @@ const iconMap = {
   Archive,
   FilePlus,
   HelpCircle,
+  ShieldCheck,
+  Wallet,
 };
 
 interface DashboardSidebarProps {
@@ -86,7 +92,6 @@ interface DashboardSidebarProps {
 
 export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
   const pathname = usePathname();
-  const router = useRouter();
   
   // Get navigation items filtered by user permissions
   const navigationItems = getNavigationForPermissions(user);
@@ -178,19 +183,31 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
             <SidebarMenuSub>
               {item.children?.map((child) => (
                 <SidebarMenuSubItem key={child.id}>
-                  <SidebarMenuSubButton
-                    onClick={() => child.href && router.push(child.href)}
-                    isActive={isActive(child.href)}
-                  >
-                    <Dot className="h-3 w-3 opacity-50" strokeWidth={3} />
-                    {renderIcon(child.icon, "h-3.5 w-3.5")}
-                    <span>{child.label}</span>
-                    {child.badge && (
-                      <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px] font-medium">
-                        {child.badge}
-                      </Badge>
-                    )}
-                  </SidebarMenuSubButton>
+                  {child.href ? (
+                    <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
+                      <Link href={child.href}>
+                        <Dot className="h-3 w-3 opacity-50" strokeWidth={3} />
+                        {renderIcon(child.icon, "h-3.5 w-3.5")}
+                        <span>{child.label}</span>
+                        {child.badge && (
+                          <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px] font-medium">
+                            {child.badge}
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuSubButton>
+                  ) : (
+                    <SidebarMenuSubButton isActive={isActive(child.href)}>
+                      <Dot className="h-3 w-3 opacity-50" strokeWidth={3} />
+                      {renderIcon(child.icon, "h-3.5 w-3.5")}
+                      <span>{child.label}</span>
+                      {child.badge && (
+                        <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px] font-medium">
+                          {child.badge}
+                        </Badge>
+                      )}
+                    </SidebarMenuSubButton>
+                  )}
                 </SidebarMenuSubItem>
               ))}
             </SidebarMenuSub>
@@ -201,19 +218,29 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
     
     return (
       <SidebarMenuItem key={item.id}>
-        <SidebarMenuButton
-          onClick={() => item.href && router.push(item.href)}
-          isActive={isItemActive}
-          tooltip={item.label}
-        >
-          {renderIcon(item.icon, "h-4 w-4")}
-          <span>{item.label}</span>
-          {item.badge && (
-            <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] font-medium">
-              {item.badge}
-            </Badge>
-          )}
-        </SidebarMenuButton>
+        {item.href ? (
+          <SidebarMenuButton asChild isActive={isItemActive} tooltip={item.label}>
+            <Link href={item.href}>
+              {renderIcon(item.icon, "h-4 w-4")}
+              <span>{item.label}</span>
+              {item.badge && (
+                <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] font-medium">
+                  {item.badge}
+                </Badge>
+              )}
+            </Link>
+          </SidebarMenuButton>
+        ) : (
+          <SidebarMenuButton isActive={isItemActive} tooltip={item.label}>
+            {renderIcon(item.icon, "h-4 w-4")}
+            <span>{item.label}</span>
+            {item.badge && (
+              <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] font-medium">
+                {item.badge}
+              </Badge>
+            )}
+          </SidebarMenuButton>
+        )}
       </SidebarMenuItem>
     );
   };
@@ -227,7 +254,7 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
           </div>
           <div className="flex-1">
             <h1 className="text-lg font-bold tracking-tight text-foreground">
-              ViniSuite
+              {APP_NAME}
             </h1>
           </div>
         </div>
@@ -267,7 +294,7 @@ export const DashboardSidebar = ({ userRole, user }: DashboardSidebarProps) => {
                 {user?.fullName || 'Current User'}
               </p>
               <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">
-                {user?.email || 'user@vinisuite.com'}
+                {user?.email || PLACEHOLDER_EMAIL}
               </p>
             </div>
           </div>

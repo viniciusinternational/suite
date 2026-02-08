@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { logUserChange } from '../audit-utils';
+import { logUserChange } from '@/lib/users/audit-utils';
 import { updateUserEmploymentSchema } from '../validation';
 
 function sanitizeData<T extends Record<string, unknown>>(data: T) {

@@ -234,7 +234,7 @@ export default function PaymentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {payment.payee ? payment.payee.fullName : '—'}
+                        {payment.payee?.fullName ?? payment.payeeFullName ?? '—'}
                       </TableCell>
                       <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                       <TableCell>{formatDate(payment.createdAt)}</TableCell>

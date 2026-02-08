@@ -2,28 +2,18 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Document } from '@/types';
-import { Edit, Trash2, Eye, FileText, Inbox, Globe, Lock, Image as ImageIcon } from 'lucide-react';
+import { FileText, Inbox, Globe, Lock, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 
 interface Props {
   documents: Document[];
-  onEdit?: (document: Document) => void;
-  onDelete?: (id: string) => void;
-  canEdit?: boolean;
-  canDelete?: boolean;
   isLoading?: boolean;
 }
 
 export function DocumentGridView({
   documents,
-  onEdit,
-  onDelete,
-  canEdit = false,
-  canDelete = false,
   isLoading = false,
 }: Props) {
   const router = useRouter();
@@ -96,48 +86,6 @@ export function DocumentGridView({
                 ) : (
                   <FileIcon className="h-12 w-12 text-gray-400" />
                 )}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/documents/${document.id}`);
-                    }}
-                    title="View"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                  {canEdit && onEdit && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(document);
-                      }}
-                      title="Edit"
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                  )}
-                  {canDelete && onDelete && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(document.id);
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-3 w-3 text-red-600" />
-                    </Button>
-                  )}
-                </div>
               </div>
 
               {/* Title */}

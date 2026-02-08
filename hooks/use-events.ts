@@ -15,7 +15,7 @@ interface UseEventsOptions {
 
 export function useEvents(filters?: EventFilters, options?: UseEventsOptions) {
   return useQuery({
-    queryKey: ['events', filters],
+    queryKey: ['events', filters?.q, filters?.tag, filters?.start, filters?.end],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (filters?.q) params.append('q', filters.q)

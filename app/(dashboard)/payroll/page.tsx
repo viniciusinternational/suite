@@ -7,13 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus } from 'lucide-react';
-import { usePayrolls, useDeletePayroll } from '@/hooks/use-payrolls';
+import { usePayrolls } from '@/hooks/use-payrolls';
 import { hasPermission } from '@/lib/permissions';
 import { PayrollTable } from '@/components/payroll/payroll-table';
 import { DeductionTable } from '@/components/payroll/deduction-table';
 import { AllowanceTable } from '@/components/payroll/allowance-table';
 import { PayrollTrackingView } from '@/components/payroll/payroll-tracking-view';
-import type { Payroll } from '@/types';
 
 export default function PayrollPage() {
   const { user } = useAuthGuard(['view_payroll']);
@@ -30,29 +29,8 @@ export default function PayrollPage() {
   }, []);
 
   const { data: payrolls = [], isLoading } = usePayrolls();
-  const deletePayroll = useDeletePayroll();
 
   const canAddPayroll = user && hasPermission(user, 'add_payroll');
-  const canEditPayroll = user && hasPermission(user, 'edit_payroll');
-  const canDeletePayroll = user && hasPermission(user, 'delete_payroll');
-
-  const handleEdit = (payroll: Payroll) => {
-    router.push(`/payroll/${payroll.id}/edit`);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this payroll? This action cannot be undone.')) {
-      try {
-        await deletePayroll.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deleting payroll:', error);
-      }
-    }
-  };
-
-  const handleView = (payroll: Payroll) => {
-    router.push(`/payroll/${payroll.id}`);
-  };
 
   if (!user) return null;
 
@@ -98,9 +76,6 @@ export default function PayrollPage() {
             <CardContent>
               <PayrollTable
                 payrolls={payrolls}
-                onEdit={canEditPayroll ? handleEdit : undefined}
-                onDelete={canDeletePayroll ? handleDelete : undefined}
-                onView={handleView}
                 isLoading={isLoading}
               />
             </CardContent>

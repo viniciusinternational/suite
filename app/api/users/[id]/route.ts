@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { logUserChange } from './audit-utils';
+import { logUserChange } from '@/lib/users/audit-utils';
 import { updateUserSchema } from './validation';
 
 // GET /api/users/[id] - Get single user

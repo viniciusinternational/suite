@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, notFound } from 'next/navigation'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { hasPermission } from '@/lib/permissions'
 import { useMemo as useMemoQuery } from '@/hooks/use-memos'
@@ -39,22 +39,12 @@ export default function EditMemoPage() {
   }
 
   if (!memo) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Memo Not Found</h2>
-          <p className="text-gray-600 mt-2">The memo you're looking for doesn't exist.</p>
-          <Button onClick={() => router.push('/memos')} className="mt-4">
-            Back to Memos
-          </Button>
-        </div>
-      </div>
-    )
+    notFound()
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50/50">
-      <div className="p-6 border-b bg-white">
+    <div className="flex flex-col h-[calc(100vh-4rem)] min-h-0">
+      <div className="shrink-0 p-4 border-b bg-background">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -65,13 +55,13 @@ export default function EditMemoPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Memo</h1>
-            <p className="text-gray-600 mt-1">Update memo details</p>
+            <h1 className="text-2xl font-bold">Edit Memo</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">Update memo details</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-lg shadow-sm border m-6 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-background">
         <MemoForm
           memo={memo}
           onSuccess={() => {

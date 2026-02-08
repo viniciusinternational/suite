@@ -1,5 +1,6 @@
-'use client'
+'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -7,18 +8,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Edit, Trash2, Eye } from 'lucide-react'
-import type { Payroll } from '@/types'
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import type { Payroll } from '@/types';
 
 interface PayrollTableProps {
-  payrolls: Payroll[]
-  onEdit?: (payroll: Payroll) => void
-  onDelete?: (id: string) => void
-  onView?: (payroll: Payroll) => void
-  isLoading?: boolean
+  payrolls: Payroll[];
+  isLoading?: boolean;
 }
 
 const monthNames = [
@@ -34,7 +30,7 @@ const monthNames = [
   'October',
   'November',
   'December',
-]
+];
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-700',
@@ -45,7 +41,7 @@ const statusColors = {
   rejected: 'bg-red-100 text-red-700',
   processed: 'bg-blue-100 text-blue-700',
   paid: 'bg-green-100 text-green-700',
-}
+};
 
 const statusLabels: Record<string, string> = {
   draft: 'Draft',
@@ -56,31 +52,27 @@ const statusLabels: Record<string, string> = {
   rejected: 'Rejected',
   processed: 'Processed',
   paid: 'Paid',
-}
+};
 
-export function PayrollTable({
-  payrolls,
-  onEdit,
-  onDelete,
-  onView,
-  isLoading = false,
-}: PayrollTableProps) {
+export function PayrollTable({ payrolls, isLoading = false }: PayrollTableProps) {
+  const router = useRouter();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const getStatusBadge = (status: string) => {
-    const colorClass = statusColors[status as keyof typeof statusColors] || statusColors.draft
-    const label = statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')
+    const colorClass = statusColors[status as keyof typeof statusColors] || statusColors.draft;
+    const label = statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
     return (
       <Badge className={colorClass} variant="outline">
         {label}
       </Badge>
-    )
-  }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -93,7 +85,6 @@ export function PayrollTable({
               <TableHead className="text-right">Employees</TableHead>
               <TableHead className="text-right">Total Amount</TableHead>
               <TableHead>Created</TableHead>
-              {(onEdit || onDelete || onView) && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -114,17 +105,12 @@ export function PayrollTable({
                 <TableCell>
                   <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
                 </TableCell>
-                {(onEdit || onDelete || onView) && (
-                  <TableCell>
-                    <div className="h-8 w-24 bg-gray-200 rounded animate-pulse ml-auto" />
-                  </TableCell>
-                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-    )
+    );
   }
 
   if (payrolls.length === 0) {
@@ -132,7 +118,7 @@ export function PayrollTable({
       <div className="border rounded-lg p-8 text-center text-gray-500">
         No payrolls found. Create your first payroll to get started.
       </div>
-    )
+    );
   }
 
   return (
@@ -145,7 +131,6 @@ export function PayrollTable({
             <TableHead className="text-right">Employees</TableHead>
             <TableHead className="text-right">Total Amount</TableHead>
             <TableHead>Created</TableHead>
-            {(onEdit || onDelete || onView) && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -153,12 +138,16 @@ export function PayrollTable({
             const totalAmount = (payroll.entries || []).reduce(
               (sum, entry) => sum + entry.netSalary,
               0
-            )
-            const employeeCount = payroll.entries?.length || 0
-            const periodLabel = `${monthNames[payroll.periodMonth - 1]} ${payroll.periodYear}`
+            );
+            const employeeCount = payroll.entries?.length || 0;
+            const periodLabel = `${monthNames[payroll.periodMonth - 1]} ${payroll.periodYear}`;
 
             return (
-              <TableRow key={payroll.id}>
+              <TableRow
+                key={payroll.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => router.push(`/payroll/${payroll.id}`)}
+              >
                 <TableCell className="font-medium">{periodLabel}</TableCell>
                 <TableCell>{getStatusBadge(payroll.status)}</TableCell>
                 <TableCell className="text-right">{employeeCount}</TableCell>
@@ -168,48 +157,11 @@ export function PayrollTable({
                 <TableCell className="text-gray-600">
                   {new Date(payroll.createdAt).toLocaleDateString()}
                 </TableCell>
-                {(onEdit || onDelete || onView) && (
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
-                      {onView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onView(payroll)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(payroll)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete(payroll.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
-            )
+            );
           })}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
-

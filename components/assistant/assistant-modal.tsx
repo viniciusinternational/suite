@@ -4,6 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { AssistantModalPrimitive } from '@assistant-ui/react';
 import { Button } from '@/components/ui/button';
 import { AssistantThread } from './assistant-thread';
+import { APP_NAME } from '@/constants';
 
 export function AssistantModal() {
   return (
@@ -26,7 +27,7 @@ export function AssistantModal() {
           <div className="px-4 py-3 border-b">
             <p className="text-sm font-semibold">AI Assistant</p>
             <p className="text-xs text-muted-foreground">
-              Ask questions about your VinSuite workspace.
+              Ask questions about your {APP_NAME} workspace.
             </p>
           </div>
           <div className="flex-1">

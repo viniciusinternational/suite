@@ -50,4 +50,3 @@ export async function logUserChange({
     console.error('Audit log failed (update user):', error);
   }
 }
-

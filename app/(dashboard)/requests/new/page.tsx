@@ -15,21 +15,21 @@ export default function CreateRequestPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push('/requests')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Requests
-        </Button>
-      </div>
-
-      {/* Form */}
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Create New Request</h1>
-          <p className="text-muted-foreground mt-1">Fill in the details below to create a new request</p>
+    <div className="space-y-6 p-6 min-h-screen">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="space-y-2">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/requests')} className="-ml-2 gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Requests
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Create New Request</h1>
+            <p className="text-sm text-muted-foreground mt-1">Fill in the details below to create a new request</p>
+          </div>
         </div>
+
+        {/* Form */}
         <RequestForm onSuccess={handleSuccess} />
       </div>
     </div>

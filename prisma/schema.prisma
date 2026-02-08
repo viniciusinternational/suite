@@ -110,6 +110,7 @@ model User {
   documentsEdit    Document[]           @relation("DocumentEditUsers")
   documentsDelete  Document[]           @relation("DocumentDeleteUsers")
   documentComments Comment[]            @relation("DocumentCommentUser")
+  accountTransactionsCreated AccountTransaction[] @relation("AccountTransactionCreatedBy")
 
   @@map("users")
 }
@@ -266,6 +267,7 @@ model Memo {
   content       String
   priority      String    @default("medium") // low, medium, high, urgent
   isActive      Boolean   @default(true)
+  isGlobal      Boolean   @default(false)
   expiresAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -536,6 +538,8 @@ model Payment {
   submittedById              String?
   approverIds                String[]  @default([])
   payeeId                    String?
+  payeeFullName              String?
+  payeePhone                 String?
   payerAccountId             String?
   currency                   String
   exchangeRate               Float?
@@ -578,9 +582,11 @@ model Payment {
   createdBy                  User?    @relation("PaymentCreatedBy", fields: [createdById], references: [id])
   submittedBy                User?    @relation("PaymentSubmittedBy", fields: [submittedById], references: [id])
   payee                      User?    @relation("PaymentPayee", fields: [payeeId], references: [id])
+  payerAccount               Account? @relation("PayerAccount", fields: [payerAccountId], references: [id])
   items                      PaymentItem[]
   installments               PaymentInstallment[]
   approvals                  PaymentApproval[]
+  accountTransactions        AccountTransaction[] @relation("PaymentAccountTransactions")
 
   @@index([sourceType])
   @@index([status])
@@ -589,6 +595,7 @@ model Payment {
   @@index([payrollId])
   @@index([createdById])
   @@index([payeeId])
+  @@index([payerAccountId])
   @@map("payments")
 }
 
@@ -773,4 +780,63 @@ model Comment {
   @@index([userId])
   @@index([created])
   @@map("document_comments")
+}
+
+model Account {
+  id                  String   @id @default(cuid())
+  name                String
+  code                String   @unique
+  currency            String
+  balance             Float    @default(0)
+  allowNegativeBalance Boolean @default(false)
+  description         String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  transactions        AccountTransaction[]
+  paymentsFrom        Payment[]            @relation("PayerAccount")
+
+  @@index([isActive])
+  @@index([code])
+  @@map("accounts")
+}
+
+model AccountTransaction {
+  id          String   @id @default(cuid())
+  accountId   String
+  type        String   // deposit, withdrawal, transfer_in, transfer_out, payment
+  amount      Float    // signed: positive = credit, negative = debit
+  currency    String
+  description String?
+  reference   String?
+  paymentId   String?
+  fromAccountId String?
+  toAccountId  String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  payment     Payment? @relation("PaymentAccountTransactions", fields: [paymentId], references: [id])
+  createdBy   User?    @relation("AccountTransactionCreatedBy", fields: [createdById], references: [id])
+
+  @@index([accountId])
+  @@index([paymentId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("account_transactions")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  code        String?  @unique
+  description String?
+  permissions Json     // Permission template: { "view_projects": true, ... }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
 }

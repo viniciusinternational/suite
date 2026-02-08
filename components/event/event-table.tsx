@@ -25,17 +25,17 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
 
   if (isLoading) {
     return (
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead>Title</TableHead>
-              <TableHead>Start</TableHead>
-              <TableHead>End</TableHead>
-              <TableHead>Visibility</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Targets</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="text-sm font-medium">Title</TableHead>
+              <TableHead className="text-sm font-medium">Start</TableHead>
+              <TableHead className="text-sm font-medium">End</TableHead>
+              <TableHead className="text-sm font-medium">Visibility</TableHead>
+              <TableHead className="text-sm font-medium">Tags</TableHead>
+              <TableHead className="text-sm font-medium">Targets</TableHead>
+              <TableHead className="text-right text-sm font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,32 +62,32 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead>Title</TableHead>
-            <TableHead>Start</TableHead>
-            <TableHead>End</TableHead>
-            <TableHead>Visibility</TableHead>
-            <TableHead>Tags</TableHead>
-            <TableHead>Targets</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead className="text-sm font-medium">Title</TableHead>
+            <TableHead className="text-sm font-medium">Start</TableHead>
+            <TableHead className="text-sm font-medium">End</TableHead>
+            <TableHead className="text-sm font-medium">Visibility</TableHead>
+            <TableHead className="text-sm font-medium">Tags</TableHead>
+            <TableHead className="text-sm font-medium">Targets</TableHead>
+            <TableHead className="text-right text-sm font-medium">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {events.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-gray-600">
+              <TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
                 No events found
               </TableCell>
             </TableRow>
           ) : (
             events.map((ev) => (
-              <TableRow key={ev.id}>
-                <TableCell className="font-medium">{ev.title}</TableCell>
-                <TableCell>{formatDateTime(ev.startDateTime)}</TableCell>
-                <TableCell>{ev.isAllDay ? 'All day' : formatDateTime(ev.endDateTime)}</TableCell>
+              <TableRow key={ev.id} className="hover:bg-muted/50 transition-colors">
+                <TableCell className="font-medium text-sm">{ev.title}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{formatDateTime(ev.startDateTime)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{ev.isAllDay ? 'All day' : formatDateTime(ev.endDateTime)}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {ev.isGlobal && (
@@ -101,7 +101,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
                       </Badge>
                     )}
                     {!ev.isGlobal && !ev.isAllDay && (
-                      <span className="text-xs text-gray-400">Timed</span>
+                      <span className="text-xs text-muted-foreground">Timed</span>
                     )}
                   </div>
                 </TableCell>
@@ -114,28 +114,28 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
                         </Badge>
                       ))}
                       {ev.tags.length > 2 && (
-                        <span className="text-xs text-gray-500">+{ev.tags.length - 2}</span>
+                        <span className="text-xs text-muted-foreground">+{ev.tags.length - 2}</span>
                       )}
                     </div>
                   ) : (
-                    <span className="text-gray-400 text-sm">-</span>
+                    <span className="text-sm text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     {ev.users && ev.users.length > 0 && (
-                      <span className="text-xs text-gray-600">{ev.users.length} user{ev.users.length !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-muted-foreground">{ev.users.length} user{ev.users.length !== 1 ? 's' : ''}</span>
                     )}
                     {ev.departments && ev.departments.length > 0 && (
-                      <span className="text-xs text-gray-600">{ev.departments.length} dept{ev.departments.length !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-muted-foreground">{ev.departments.length} dept{ev.departments.length !== 1 ? 's' : ''}</span>
                     )}
                     {ev.units && ev.units.length > 0 && (
-                      <span className="text-xs text-gray-600">{ev.units.length} unit{ev.units.length !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-muted-foreground">{ev.units.length} unit{ev.units.length !== 1 ? 's' : ''}</span>
                     )}
-                    {(!ev.users || ev.users.length === 0) && 
-                     (!ev.departments || ev.departments.length === 0) && 
+                    {(!ev.users || ev.users.length === 0) &&
+                     (!ev.departments || ev.departments.length === 0) &&
                      (!ev.units || ev.units.length === 0) && (
-                      <span className="text-gray-400 text-sm">-</span>
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </div>
                 </TableCell>
@@ -153,7 +153,7 @@ export function EventTable({ events, onEdit, onDelete, isLoading = false }: Prop
                       variant="ghost"
                       size="sm"
                       onClick={() => onDelete(ev.id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

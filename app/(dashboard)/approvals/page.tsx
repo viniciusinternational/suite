@@ -4,11 +4,12 @@ import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PendingApprovalsList } from '@/components/approvals/pending-approvals-list';
 import { usePendingApprovals } from '@/hooks/use-approvals';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, FolderKanban, Briefcase, Clock, Wallet, CreditCard } from 'lucide-react';
 
 export default function ApprovalsPage() {
   useAuthGuard(['view_approvals']);
-  const { data: pendingApprovals = [] } = usePendingApprovals();
+  const { data: pendingApprovals = [], isLoading } = usePendingApprovals();
 
   // Calculate statistics
   const stats = {
@@ -30,6 +31,19 @@ export default function ApprovalsPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        {isLoading ? (
+          Array.from({ length: 6 }).map((i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-12" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
@@ -84,6 +98,8 @@ export default function ApprovalsPage() {
             <div className="text-2xl font-bold">{stats.payments}</div>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
 
       {/* Pending Approvals List */}

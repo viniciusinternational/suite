@@ -31,7 +31,7 @@ import { useCreateUser } from '@/hooks/use-users';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '@/lib/axios';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
-import type { ZitadelUser, Department, UserRole } from '@/types';
+import type { ZitadelUser, Department, Role } from '@/types';
 import {
   ArrowLeft,
   UserPlus,
@@ -54,7 +54,13 @@ const createUserSchema = z.object({
   employeeId: z.string().optional(),
   position: z.string().min(1, 'Position is required'),
   hireDate: z.string().min(1, 'Hire date is required'),
-  salary: z.coerce.number().positive('Salary must be positive'),
+  salary: z
+    .preprocess((v) => {
+      if (v === '' || v === null || v === undefined) return undefined;
+      const n = Number(v);
+      return Number.isNaN(n) ? undefined : n;
+    }, z.number().positive('Salary must be positive').optional())
+    .refine((v) => v != null && v > 0, { message: 'Salary is required', path: ['salary'] }),
   role: z.enum(['super_admin', 'managing_director', 'department_head', 'hr_manager', 'administrator', 'accountant', 'employee']),
   permissions: z.preprocess(
     (value) => {
@@ -104,6 +110,17 @@ export default function NewUserPage() {
   });
   const departments: Department[] = departmentsResponse?.data || [];
 
+  // Fetch roles for "Copy from role" template
+  const { data: rolesResponse } = useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const res = await axiosClient.get<{ ok: boolean; data: Role[] }>('/roles');
+      if (!res.data.ok) return [];
+      return Array.isArray(res.data.data) ? res.data.data : [];
+    },
+  });
+  const roles: Role[] = Array.isArray(rolesResponse) ? rolesResponse : [];
+
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -118,7 +135,7 @@ export default function NewUserPage() {
       employeeId: '',
       position: '',
       hireDate: '',
-      salary: 0,
+      salary: undefined as number | undefined,
       role: 'employee',
       permissions: {},
     },
@@ -160,17 +177,16 @@ export default function NewUserPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
+    <div className="space-y-6 p-6 bg-muted/30 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/users')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Users
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.push('/users')} aria-label="Back to users">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Create New User</h1>
-            <p className="text-gray-600 mt-1">Select a user from Zitadel and fill in their details</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Create New User</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Select a user from Zitadel and fill in their details</p>
           </div>
         </div>
       </div>
@@ -182,8 +198,8 @@ export default function NewUserPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Zitadel User Selection - Required */}
-              <Card>
-                <CardHeader>
+              <Card className="border border-border/50 shadow-sm">
+                <CardHeader className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
                     Select Zitadel User
@@ -216,8 +232,8 @@ export default function NewUserPage() {
               </Card>
 
               {/* Basic Information */}
-              <Card>
-                <CardHeader>
+              <Card className="border border-border/50 shadow-sm">
+                <CardHeader className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     <UserPlus className="h-5 w-5" />
                     User Basic Information
@@ -229,11 +245,11 @@ export default function NewUserPage() {
                 <CardContent className="space-y-6">
                   {/* Personal Information Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <h3 className="flex items-center gap-2 text-lg font-semibold">
                       <User className="h-5 w-5" />
                       Personal Information
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="firstName"
@@ -247,7 +263,6 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="lastName"
@@ -261,23 +276,19 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter full name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="fullName"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter full name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="email"
@@ -292,14 +303,11 @@ export default function NewUserPage() {
                                 disabled
                               />
                             </FormControl>
-                            <FormDescription>
-                              Email is synced from Zitadel
-                            </FormDescription>
+                            <FormDescription>Email is synced from Zitadel</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="phone"
@@ -313,9 +321,6 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="dob"
@@ -329,7 +334,6 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="gender"
@@ -357,11 +361,11 @@ export default function NewUserPage() {
 
                   {/* Employment Information Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <h3 className="flex items-center gap-2 text-lg font-semibold">
                       <Building2 className="h-5 w-5" />
                       Employment Information
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="departmentId"
@@ -403,39 +407,37 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-
-                      <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role</FormLabel>
-                            <Select
-                              onValueChange={(value: UserRole) => field.onChange(value)}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="employee">User</SelectItem>
-                                <SelectItem value="department_head">Department Head</SelectItem>
-                                <SelectItem value="hr_manager">HR Manager</SelectItem>
-                                <SelectItem value="accountant">Accountant</SelectItem>
-                                <SelectItem value="administrator">Administrator</SelectItem>
-                                <SelectItem value="managing_director">Managing Director</SelectItem>
-                                <SelectItem value="super_admin">Super Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <FormLabel>Copy from role (optional)</FormLabel>
+                        <Select
+                          onValueChange={(roleId) => {
+                            if (!roleId || roleId === '__none__') {
+                              setPermissions({});
+                              return;
+                            }
+                            const role = roles.find((r) => r.id === roleId);
+                            if (role && role.permissions && typeof role.permissions === 'object') {
+                              setPermissions({ ...(role.permissions as Record<string, boolean>) });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a role to prefill permissions" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {roles.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.name}
+                                {r.code ? ` (${r.code})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select a role to prefill permissions; you can still adjust them below.
+                        </FormDescription>
+                      </div>
                       <FormField
                         control={form.control}
                         name="position"
@@ -449,7 +451,6 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="employeeId"
@@ -463,9 +464,6 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="hireDate"
@@ -479,19 +477,23 @@ export default function NewUserPage() {
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="salary"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Annual Salary</FormLabel>
+                            <FormLabel>Annual Salary (₦)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
+                                min={0}
+                                step={1}
                                 placeholder="Enter annual salary"
-                                {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  field.onChange(raw === '' ? undefined : Number(raw));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -544,8 +546,8 @@ export default function NewUserPage() {
 
         {/* Right Column: Permissions */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-6">
-            <CardHeader>
+          <Card className="sticky top-6 border border-border/50 shadow-sm">
+            <CardHeader className="space-y-1">
               <CardTitle>Permissions</CardTitle>
               <CardDescription>
                 Configure user permissions and access levels

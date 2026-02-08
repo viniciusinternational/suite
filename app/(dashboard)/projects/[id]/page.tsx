@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
@@ -37,21 +37,7 @@ export default function ProjectDetailsPage() {
   }
 
   if (!project) {
-    return (
-      <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/projects')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Projects
-          </Button>
-        </div>
-        <div className="text-center py-12">
-          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p className="text-gray-600 mb-4">The project you're looking for doesn't exist.</p>
-          <Button onClick={() => router.push('/projects')}>Go Back to Projects</Button>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   return (

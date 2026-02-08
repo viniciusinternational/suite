@@ -11,7 +11,6 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
-  DollarSign,
   Edit3,
   Loader2,
   Mail,
@@ -20,6 +19,7 @@ import {
   User,
   Users,
 } from 'lucide-react';
+import { formatCurrencyNGN } from '@/lib/utils';
 
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import {
@@ -201,14 +201,6 @@ export default function EditUserPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const detailsForm = useForm<DetailsFormValues>({
     resolver: zodResolver(detailsSchema),
     defaultValues: {
@@ -373,7 +365,7 @@ export default function EditUserPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
+      <div className="min-h-screen space-y-6 p-6 bg-muted/30">
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-64" />
@@ -388,7 +380,7 @@ export default function EditUserPage() {
 
   if (error || !user) {
     return (
-      <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
+      <div className="min-h-screen space-y-6 p-6 bg-muted/30">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => router.push('/users')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -411,22 +403,22 @@ export default function EditUserPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/users')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Users
+    <div className="min-h-screen space-y-6 p-6 bg-muted/30">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.push('/users')} aria-label="Back to users">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit User</h1>
-            <p className="text-gray-600 mt-1">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Edit User</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Update user profile, employment information, and permissions.
             </p>
           </div>
         </div>
         <Button
           variant="outline"
+          className="shrink-0"
           onClick={() => router.push(`/users/${user.id}`)}
         >
           <Users className="h-4 w-4 mr-2" />
@@ -434,9 +426,9 @@ export default function EditUserPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Card className="border border-border/50 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 bg-gray-200 flex items-center justify-center">
@@ -789,7 +781,7 @@ export default function EditUserPage() {
                           name="salary"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Annual Salary</FormLabel>
+                              <FormLabel>Annual Salary (₦)</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -871,12 +863,11 @@ export default function EditUserPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-gray-600" />
                         <div>
                           <p className="text-sm font-medium text-gray-600">
                             Annual Salary
                           </p>
-                          <p className="text-sm">{formatCurrency(user.salary)}</p>
+                          <p className="text-sm tabular-nums">{formatCurrencyNGN(user.salary)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -992,9 +983,9 @@ export default function EditUserPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="sticky top-6">
-            <CardHeader>
+        <div className="space-y-6 lg:col-span-1">
+          <Card className="sticky top-6 border border-border/50 shadow-sm">
+            <CardHeader className="space-y-1">
               <CardTitle>Contact Information</CardTitle>
               <CardDescription>
                 Primary contact details for this user.

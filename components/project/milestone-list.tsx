@@ -21,6 +21,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -40,6 +50,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { MilestoneForm } from '@/components/project/milestone-form';
 import { useMilestonesWithPagination, useCreateMilestone, useDeleteMilestone } from '@/hooks/use-milestones';
@@ -58,6 +69,8 @@ export function MilestoneList({ projectId }: MilestoneListProps) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<(Milestone & { _count?: { tasks: number } }) | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const filters = {
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -129,10 +142,11 @@ export function MilestoneList({ projectId }: MilestoneListProps) {
     setPage(1); // Reset to first page after creating
   };
 
-  const handleDelete = async (milestoneId: string) => {
-    if (confirm('Are you sure you want to delete this milestone?')) {
-      await deleteMilestone.mutateAsync(milestoneId);
-    }
+  const handleDelete = async () => {
+    if (!selectedMilestone) return;
+    await deleteMilestone.mutateAsync(selectedMilestone.id);
+    setShowDeleteConfirm(false);
+    setSelectedMilestone(null);
   };
 
   const hasActiveFilters = statusFilter !== 'all' || searchQuery || startDate || endDate;
@@ -269,12 +283,15 @@ export function MilestoneList({ projectId }: MilestoneListProps) {
                     <TableHead>Progress</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Budget</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {milestones.map((milestone: Milestone & { _count?: { tasks: number } }) => (
-                    <TableRow key={milestone.id}>
+                    <TableRow
+                      key={milestone.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setSelectedMilestone(milestone)}
+                    >
                       <TableCell>
                         <div className="space-y-1">
                           <p className="font-medium">{milestone.name}</p>
@@ -324,16 +341,6 @@ export function MilestoneList({ projectId }: MilestoneListProps) {
                             </p>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(milestone.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -391,6 +398,90 @@ export function MilestoneList({ projectId }: MilestoneListProps) {
           </>
         )}
       </CardContent>
+
+      {/* Milestone Detail Modal */}
+      <Dialog open={!!selectedMilestone} onOpenChange={(open) => !open && setSelectedMilestone(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedMilestone?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedMilestone?.description || 'Milestone details'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedMilestone && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={getStatusBadgeColor(selectedMilestone.status)}>
+                  <span className="flex items-center gap-1">
+                    {getStatusIcon(selectedMilestone.status)}
+                    {selectedMilestone.status.replace('_', ' ')}
+                  </span>
+                </Badge>
+                {selectedMilestone._count && (
+                  <span className="text-sm text-muted-foreground">
+                    {selectedMilestone._count.tasks} task{selectedMilestone._count.tasks !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Progress</p>
+                  <Progress value={selectedMilestone.progress} className="h-2 mt-1" />
+                  <p className="font-medium mt-1">{selectedMilestone.progress}%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Due Date</p>
+                  <p className="font-medium">{formatDate(selectedMilestone.dueDate)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Budget</p>
+                  <p className="font-medium">{formatCurrency(selectedMilestone.budget)}</p>
+                </div>
+                {selectedMilestone.spent > 0 && (
+                  <div>
+                    <p className="text-muted-foreground">Spent</p>
+                    <p className="font-medium">{formatCurrency(selectedMilestone.spent)}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this milestone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMilestone.isPending}
+            >
+              {deleteMilestone.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Milestone Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

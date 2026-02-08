@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
 
     // Check if we're getting a user by email
     const email = searchParams.get('email');
+    console.log('email', email);
     if (email) {
       const user = await prisma.user.findUnique({
         where: { email },
@@ -99,6 +100,8 @@ export async function GET(request: NextRequest) {
           },
         },
       });
+
+      console.log('user', user);
 
       if (!user) {
         return NextResponse.json(

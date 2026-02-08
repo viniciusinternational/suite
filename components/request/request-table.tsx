@@ -1,21 +1,19 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RequestForm } from '@/types';
-import { Eye, Edit, Trash2 } from 'lucide-react';
 
 interface RequestTableProps {
   requests: RequestForm[];
-  onView?: (request: RequestForm) => void;
-  onEdit?: (request: RequestForm) => void;
-  onDelete?: (id: string) => void;
   isLoading?: boolean;
 }
 
-export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = false }: RequestTableProps) {
+export function RequestTable({ requests, isLoading = false }: RequestTableProps) {
+  const router = useRouter();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -81,7 +79,7 @@ export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = f
     const approved = request.approvals.filter((a) => a.status === 'approved').length;
     const rejected = request.approvals.filter((a) => a.status === 'rejected').length;
     const pending = request.approvals.filter((a) => a.status === 'pending').length;
-    
+
     if (rejected > 0) {
       return `${approved}/${total} (Rejected)`;
     }
@@ -104,7 +102,6 @@ export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = f
               <TableHead>Amount</TableHead>
               <TableHead>Approvals</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,13 +114,6 @@ export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = f
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Skeleton className="h-8 w-8" />
-                    <Skeleton className="h-8 w-8" />
-                    <Skeleton className="h-8 w-8" />
-                  </div>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -144,19 +134,22 @@ export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = f
             <TableHead>Amount</TableHead>
             <TableHead>Approvals</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {requests.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-gray-600">
+              <TableCell colSpan={7} className="text-center py-8 text-gray-600">
                 No requests found
               </TableCell>
             </TableRow>
           ) : (
             requests.map((request) => (
-              <TableRow key={request.id}>
+              <TableRow
+                key={request.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => router.push(`/requests/${request.id}`)}
+              >
                 <TableCell className="font-medium">{request.name}</TableCell>
                 <TableCell className="capitalize">
                   {request.type?.replace('_', ' ')}
@@ -178,40 +171,6 @@ export function RequestTable({ requests, onView, onEdit, onDelete, isLoading = f
                   {getApprovalsDisplay(request)}
                 </TableCell>
                 <TableCell>{formatDate(request.requestDate)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {onView && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onView(request)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(request)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDelete(request.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
               </TableRow>
             ))
           )}

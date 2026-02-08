@@ -2,27 +2,18 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Document } from '@/types';
-import { Edit, Trash2, Eye, FileText, Inbox, Globe, Lock } from 'lucide-react';
+import { FileText, Inbox, Globe, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Props {
   documents: Document[];
-  onEdit?: (document: Document) => void;
-  onDelete?: (id: string) => void;
-  canEdit?: boolean;
-  canDelete?: boolean;
   isLoading?: boolean;
 }
 
 export function DocumentListView({
   documents,
-  onEdit,
-  onDelete,
-  canEdit = false,
-  canDelete = false,
   isLoading = false,
 }: Props) {
   const router = useRouter();
@@ -52,7 +43,6 @@ export function DocumentListView({
               <TableHead>Size</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Status</TableHead>
-              {(canEdit || canDelete) && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -65,14 +55,6 @@ export function DocumentListView({
                 <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                {(canEdit || canDelete) && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
             ))}
           </TableBody>
@@ -99,7 +81,7 @@ export function DocumentListView({
         <TableBody>
           {documents.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={canEdit || canDelete ? 8 : 7} className="text-center py-12">
+              <TableCell colSpan={7} className="text-center py-12">
                 <div className="flex flex-col items-center justify-center gap-3">
                   <Inbox className="h-12 w-12 text-gray-400" />
                   <div>
@@ -113,18 +95,18 @@ export function DocumentListView({
             </TableRow>
           ) : (
             documents.map((document) => (
-              <TableRow key={document.id} className="hover:bg-gray-50">
+              <TableRow
+                key={document.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => router.push(`/documents/${document.id}`)}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <button
-                        onClick={() => router.push(`/documents/${document.id}`)}
-                        className="text-left font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                        title={document.title}
-                      >
+                      <span className="font-medium truncate block" title={document.title}>
                         {document.title}
-                      </button>
+                      </span>
                       {document.tags && document.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {document.tags.slice(0, 2).map((tag) => (
@@ -182,40 +164,6 @@ export function DocumentListView({
                     </Badge>
                   )}
                 </TableCell>
-                {(canEdit || canDelete) && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/documents/${document.id}`)}
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canEdit && onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(document)}
-                          title="Edit"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDelete(document.id)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
               </TableRow>
             ))
           )}

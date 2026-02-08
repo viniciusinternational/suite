@@ -44,7 +44,8 @@ export function MemoCard({ memo, onEdit, canEdit = false }: Props) {
     setShowDeleteDialog(false)
   }
 
-  const isExpired = memo.expiresAt && new Date(memo.expiresAt) < new Date()
+  const expiresAtDate = memo.expiresAt ? new Date(memo.expiresAt) : null
+  const isExpired = expiresAtDate && !isNaN(expiresAtDate.getTime()) && expiresAtDate < new Date()
 
   // Sanitize HTML content for safe rendering
   const sanitizedContent = useMemo(() => {
@@ -103,17 +104,23 @@ export function MemoCard({ memo, onEdit, canEdit = false }: Props) {
             <Badge className={priority.color}>
               {priority.label}
             </Badge>
-            {memo.departments && memo.departments.length > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {memo.departments.length} {memo.departments.length === 1 ? 'Dept' : 'Depts'}
-              </Badge>
+            {memo.isGlobal ? (
+              <Badge variant="secondary" className="text-xs">Everyone</Badge>
+            ) : (
+              <>
+                {memo.departments && memo.departments.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {memo.departments.length} {memo.departments.length === 1 ? 'Dept' : 'Depts'}
+                  </Badge>
+                )}
+                {memo.users && memo.users.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {memo.users.length} {memo.users.length === 1 ? 'User' : 'Users'}
+                  </Badge>
+                )}
+              </>
             )}
-            {memo.users && memo.users.length > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {memo.users.length} {memo.users.length === 1 ? 'User' : 'Users'}
-              </Badge>
-            )}
-            {memo.expiresAt && (
+            {memo.expiresAt && !isNaN(new Date(memo.expiresAt).getTime()) && (
               <Badge variant={isExpired ? 'destructive' : 'outline'} className="text-xs">
                 {isExpired ? 'Expired' : `Expires ${new Date(memo.expiresAt).toLocaleDateString()}`}
               </Badge>

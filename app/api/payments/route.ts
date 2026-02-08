@@ -31,7 +31,9 @@ const paymentCreateSchema = z.object({
   tags: z.array(z.string()).optional(),
   requiresApproval: z.boolean().optional(),
   payeeId: z.string().optional(),
-  payerAccountId: z.string().optional(),
+  payeeFullName: z.string().optional(),
+  payeePhone: z.string().optional(),
+  payerAccountId: z.string().min(1, 'Payer account is required'),
   submittedById: z.string().optional(),
   approverIds: z.array(z.string()).optional(),
   items: z.array(paymentItemSchema).optional(),
@@ -131,6 +133,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!payload.payerAccountId) {
+      return NextResponse.json(
+        { ok: false, error: 'payerAccountId is required' },
+        { status: 400 }
+      );
+    }
+
+    const account = await prisma.account.findUnique({
+      where: { id: payload.payerAccountId },
+    });
+    if (!account) {
+      return NextResponse.json(
+        { ok: false, error: 'Payer account not found' },
+        { status: 400 }
+      );
+    }
+    if (!account.isActive) {
+      return NextResponse.json(
+        { ok: false, error: 'Payer account is not active' },
+        { status: 400 }
+      );
+    }
+
     let itemsInput = payload.items ?? [];
     let derivedFromRequestFormItems = payload.derivedFromRequestFormItems ?? false;
     let requestFormItemIds: string[] = [];
@@ -153,6 +178,15 @@ export async function POST(request: NextRequest) {
 
     const installmentsInput = payload.installments ? normalizeInstallments(payload.installments) : [];
 
+    if (payload.status === 'paid') {
+      if (!account.allowNegativeBalance && account.balance < totalAmount) {
+        return NextResponse.json(
+          { ok: false, error: `Insufficient account balance. Available: ${account.currency} ${account.balance.toFixed(2)}` },
+          { status: 400 }
+        );
+      }
+    }
+
     const createdPayment = await prisma.payment.create({
       data: {
         sourceType,
@@ -163,6 +197,8 @@ export async function POST(request: NextRequest) {
         submittedById: payload.submittedById ?? userId,
         approverIds: payload.approverIds ?? [],
         payeeId: payload.payeeId,
+        payeeFullName: payload.payeeFullName,
+        payeePhone: payload.payeePhone,
         payerAccountId: payload.payerAccountId,
         currency,
         exchangeRate: payload.exchangeRate,
@@ -222,6 +258,27 @@ export async function POST(request: NextRequest) {
       },
       include: paymentWithRelations.include,
     });
+
+    if (payload.status === 'paid' && createdPayment.payerAccountId) {
+      await prisma.$transaction([
+        prisma.accountTransaction.create({
+          data: {
+            accountId: createdPayment.payerAccountId,
+            type: 'payment',
+            amount: -createdPayment.totalAmount,
+            currency: createdPayment.currency,
+            description: `Payment ${createdPayment.id}`,
+            reference: createdPayment.reference ?? null,
+            paymentId: createdPayment.id,
+            createdById: userId !== 'system' ? userId : null,
+          },
+        }),
+        prisma.account.update({
+          where: { id: createdPayment.payerAccountId },
+          data: { balance: { decrement: createdPayment.totalAmount }, updatedAt: new Date() },
+        }),
+      ]);
+    }
 
     await createAuditLog({
       userId,

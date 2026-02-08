@@ -8,7 +8,8 @@ const updateMemoSchema = z.object({
   content: z.string().min(1).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   isActive: z.boolean().optional(),
-  expiresAt: z.string().datetime().optional().or(z.literal('').optional()),
+  isGlobal: z.boolean().optional(),
+  expiresAt: z.string().optional(),
   userIds: z.array(z.string()).optional(),
   departmentIds: z.array(z.string()).optional(),
 })
@@ -55,9 +56,11 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: 'Memo not found' }, { status: 404 })
     }
 
-    // Convert userIds (emails or IDs) to actual user IDs
+    const isGlobal = data.isGlobal === true
+
+    // Convert userIds (emails or IDs) to actual user IDs (skip when isGlobal)
     let resolvedUserIds: string[] | undefined = undefined
-    if (data.userIds && data.userIds.length > 0) {
+    if (!isGlobal && data.userIds && data.userIds.length > 0) {
       const validUserInputs = data.userIds.filter(input => input && input.trim())
       if (validUserInputs.length > 0) {
         // Check if inputs are emails (contain @) or IDs (CUID format)
@@ -109,9 +112,9 @@ export async function PATCH(
       }
     }
 
-    // Convert departmentIds (codes, names, or IDs) to actual department IDs
+    // Convert departmentIds (codes, names, or IDs) to actual department IDs (skip when isGlobal)
     let resolvedDepartmentIds: string[] | undefined = undefined
-    if (data.departmentIds && data.departmentIds.length > 0) {
+    if (!isGlobal && data.departmentIds && data.departmentIds.length > 0) {
       const validDeptInputs = data.departmentIds.filter(input => input && input.trim())
       if (validDeptInputs.length > 0) {
         // Check if inputs are codes, names, or IDs
@@ -176,9 +179,15 @@ export async function PATCH(
         content: data.content ?? undefined,
         priority: data.priority ?? undefined,
         isActive: data.isActive ?? undefined,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : data.expiresAt === '' ? null : undefined,
-        users: resolvedUserIds !== undefined ? { set: resolvedUserIds.map((id) => ({ id })) } : undefined,
-        departments: resolvedDepartmentIds !== undefined ? { set: resolvedDepartmentIds.map((id) => ({ id })) } : undefined,
+        isGlobal: data.isGlobal !== undefined ? data.isGlobal : undefined,
+        expiresAt: (() => {
+          if (data.expiresAt === undefined) return undefined
+          if (data.expiresAt === '' || data.expiresAt === null) return null
+          const d = new Date(data.expiresAt as string)
+          return isNaN(d.getTime()) ? undefined : d
+        })(),
+        users: isGlobal ? { set: [] } : (resolvedUserIds !== undefined ? { set: resolvedUserIds.map((id) => ({ id })) } : undefined),
+        departments: isGlobal ? { set: [] } : (resolvedDepartmentIds !== undefined ? { set: resolvedDepartmentIds.map((id) => ({ id })) } : undefined),
       },
       include: {
         users: { select: { id: true, fullName: true, email: true, role: true } },

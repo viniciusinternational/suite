@@ -6,24 +6,44 @@ import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Loader2, Edit } from 'lucide-react'
-import { useDeduction } from '@/hooks/use-deductions'
+import { ArrowLeft, Loader2, Edit, Trash2 } from 'lucide-react'
+import { useDeduction, useDeleteDeduction } from '@/hooks/use-deductions'
 import { hasPermission } from '@/lib/permissions'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function DeductionViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuthGuard(['view_payroll'])
   const router = useRouter()
   const [id, setId] = useState<string>('')
-  
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
   useEffect(() => {
     params.then((p) => setId(p.id))
   }, [params])
-  
+
   const { data: deduction, isLoading } = useDeduction(id)
+  const deleteDeduction = useDeleteDeduction()
 
   if (!user) return null
 
   const canEdit = user && hasPermission(user, 'edit_payroll')
+  const canDelete = user && hasPermission(user, 'delete_payroll')
+
+  const handleDelete = async () => {
+    if (!id) return
+    await deleteDeduction.mutateAsync(id)
+    setShowDeleteDialog(false)
+    router.push('/payroll?tab=deductions')
+  }
 
   if (isLoading) {
     return (
@@ -64,13 +84,42 @@ export default function DeductionViewPage({ params }: { params: Promise<{ id: st
             <p className="text-gray-600 mt-1">Deduction details and configuration</p>
           </div>
         </div>
-        {canEdit && (
-          <Button onClick={() => router.push(`/payroll/deductions/${id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canEdit && (
+            <Button onClick={() => router.push(`/payroll/deductions/${id}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this deduction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteDeduction.isPending}
+            >
+              {deleteDeduction.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>

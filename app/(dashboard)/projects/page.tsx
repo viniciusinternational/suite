@@ -23,12 +23,10 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-import { 
-  FolderKanban, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Eye,
+import {
+  FolderKanban,
+  Search,
+  Filter,
   Calendar,
   Building2,
   Users,
@@ -36,16 +34,8 @@ import {
   Download,
   FileText,
   Clock,
-  Plus
+  Plus,
 } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 import { useProjects } from '@/hooks/use-projects';
 import { useQuery } from '@tanstack/react-query';
@@ -70,14 +60,16 @@ export default function ProjectsPage() {
     search: searchTerm || undefined,
   });
 
-  // Fetch departments
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
+  // Fetch departments (normalize to array so .map never fails if API shape varies)
+  const { data: departmentsRaw, isLoading: departmentsLoading } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const response = await axios.get('/departments');
-      return response.data.data;
+      const d = response.data?.data;
+      return Array.isArray(d) ? d : [];
     },
   });
+  const departments = Array.isArray(departmentsRaw) ? departmentsRaw : [];
 
   const getStatusBadgeColor = (status: string) => {
     const colors = {
@@ -290,7 +282,7 @@ export default function ProjectsPage() {
                 ) : departments.length === 0 ? (
                   <SelectItem value="_empty" disabled>No departments found</SelectItem>
                 ) : (
-                  departments?.map((dept: any) => (
+                  departments.map((dept: any) => (
                     <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </SelectItem>
@@ -311,7 +303,6 @@ export default function ProjectsPage() {
                   <TableHead>Budget</TableHead>
                   <TableHead>Timeline</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,19 +315,22 @@ export default function ProjectsPage() {
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     </TableRow>
                   ))
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       <FolderKanban className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No projects found</p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   projects.map((project: Project) => (
-                    <TableRow key={project.id}>
+                    <TableRow
+                      key={project.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                    >
                       <TableCell>
                         <div className="space-y-1">
                           <p className="font-medium text-gray-900">{project.name}</p>
@@ -400,28 +394,6 @@ export default function ProjectsPage() {
                         <Badge variant="outline" className={getStatusBadgeColor(project.status)}>
                           {project.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </Badge>
-                      </TableCell>
-                      
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => router.push(`/projects/${project.id}`)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Generate Report
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))

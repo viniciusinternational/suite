@@ -22,36 +22,23 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Eye,
+import {
+  Users,
+  Search,
+  Filter,
   Mail,
-  Phone,
   Calendar,
-  DollarSign,
   Building2,
   UserCheck,
+  Shield,
   Download,
   FileText,
-  Edit,
-  Trash2,
   UserPlus,
   Loader2,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { User, Department } from '@/types';
-import { useUsers, useDeleteUser } from '@/hooks/use-users';
+import { useUsers } from '@/hooks/use-users';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '@/lib/axios';
 import { useRouter } from 'next/navigation';
@@ -83,9 +70,6 @@ export default function UsersPage() {
   });
   const departments: Department[] = departmentsResponse?.data || [];
 
-  // Mutations
-  const deleteUserMutation = useDeleteUser();
-
   const filteredUsers = users.filter(user => {
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesRole;
@@ -102,36 +86,18 @@ export default function UsersPage() {
     return departments.find(dept => dept.id === departmentId);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to deactivate this user?')) {
-      try {
-        await deleteUserMutation.mutateAsync(userId);
-      } catch (error) {
-        console.error('Failed to delete user:', error);
-      }
-    }
-  };
-
   const uniqueRoles = [...new Set(users.map(user => user.role))];
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50/50 min-h-screen">
+    <div className="min-h-screen space-y-6 p-6 bg-muted/30">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">All Users</h1>
-          <p className="text-gray-600 mt-1">Complete user directory and management</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">All Users</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Complete user directory and management</p>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -148,12 +114,12 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Users</p>
                 <p className="text-2xl font-bold text-gray-900">{users.length}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
@@ -161,11 +127,11 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
+                <p className="text-sm font-medium text-muted-foreground">Active Users</p>
                 <p className="text-2xl font-bold text-green-700">
                   {users.filter(user => user.isActive).length}
                 </p>
@@ -175,11 +141,11 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Departments</p>
+                <p className="text-sm font-medium text-muted-foreground">Departments</p>
                 <p className="text-2xl font-bold text-purple-700">{departments.length}</p>
               </div>
               <Building2 className="h-8 w-8 text-purple-600" />
@@ -187,24 +153,24 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg. Salary</p>
+                <p className="text-sm font-medium text-muted-foreground">Roles in Use</p>
                 <p className="text-2xl font-bold text-orange-700">
-                  {users.length > 0 ? formatCurrency(users.reduce((sum, user) => sum + user.salary, 0) / users.length) : '$0'}
+                  {uniqueRoles.length}
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-orange-600" />
+              <Shield className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
       
       {/* User Directory */}
-      <Card>
-        <CardHeader>
+      <Card className="border border-border/50 shadow-sm">
+        <CardHeader className="space-y-1">
           <CardTitle>User Directory</CardTitle>
           <CardDescription>Search and manage all user records</CardDescription>
         </CardHeader>
@@ -287,7 +253,8 @@ export default function UsersPage() {
 
           {/* Users Table */}
           {!isLoading && !error && (
-            <div className="border rounded-lg">
+            <div className="rounded-lg border border-border/50 overflow-hidden">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
@@ -296,9 +263,7 @@ export default function UsersPage() {
                     <TableHead>Role</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Hire Date</TableHead>
-                    <TableHead>Salary</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -306,7 +271,11 @@ export default function UsersPage() {
                     const department = getDepartment(user.departmentId);
                     
                     return (
-                      <TableRow key={user.id} className="hover:bg-gray-50">
+                      <TableRow
+                        key={user.id}
+                        className="cursor-pointer transition-colors hover:bg-muted/50"
+                        onClick={() => router.push(`/users/${user.id}`)}
+                      >
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8 bg-gray-200 flex items-center justify-center">
@@ -348,59 +317,24 @@ export default function UsersPage() {
                         </TableCell>
                         
                         <TableCell>
-                          <div className="flex items-center text-sm font-medium">
-                            <DollarSign className="h-3 w-3 mr-1" />
-                            {formatCurrency(user.salary)}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
                           <Badge variant="outline" className={getStatusBadgeColor(user.isActive)}>
                             {user.isActive ? 'Active' : 'Inactive'}
                           </Badge>
-                        </TableCell>
-                        
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => router.push(`/users/${user.id}`)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/users/${user.id}/edit`)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Deactivate User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
           
           {!isLoading && !error && filteredUsers.length === 0 && (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No users found matching your criteria</p>
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 py-12 px-4">
+              <Users className="h-12 w-12 text-muted-foreground mb-4" aria-hidden />
+              <p className="text-sm font-medium text-foreground">No users found</p>
+              <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or search term</p>
             </div>
           )}
         </CardContent>

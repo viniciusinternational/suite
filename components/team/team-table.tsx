@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Team } from '@/types'
 import { Eye, Edit, Trash2, Users } from 'lucide-react'
 
@@ -12,9 +13,10 @@ interface Props {
   onView?: (team: Team) => void
   onEdit?: (team: Team) => void
   onDelete?: (id: string) => void
+  isLoading?: boolean
 }
 
-export function TeamTable({ teams, onView, onEdit, onDelete }: Props) {
+export function TeamTable({ teams, onView, onEdit, onDelete, isLoading = false }: Props) {
   return (
     <div className="border rounded-lg">
       <Table>
@@ -30,7 +32,19 @@ export function TeamTable({ teams, onView, onEdit, onDelete }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {teams.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-8" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+              </TableRow>
+            ))
+          ) : teams.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8 text-gray-600">
                 No teams found

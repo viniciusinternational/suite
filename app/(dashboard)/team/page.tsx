@@ -36,7 +36,7 @@ export default function TeamPage() {
   const [viewing, setViewing] = useState<Team | null>(null)
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null)
 
-  const { data: teams = [] } = useTeams({ q: search || undefined })
+  const { data: teams = [], isLoading } = useTeams({ q: search || undefined })
   const deleteMutation = useDeleteTeam()
   const removeUserMutation = useRemoveUserFromTeam(viewing?.id || '')
 
@@ -115,6 +115,7 @@ export default function TeamPage() {
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            isLoading={isLoading}
           />
         </CardContent>
       </Card>

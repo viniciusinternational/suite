@@ -1,0 +1,16 @@
+export { DocumentForm } from './document-form';
+export { DocumentPermissions } from './document-permissions';
+export { DocumentFilters } from './document-filters';
+export { ExplorerSidebar } from './explorer-sidebar';
+export { ExplorerToolbar } from './explorer-toolbar';
+export { DocumentTypesManager } from './document-types-manager';
+export { CorrespondentsManager } from './correspondents-manager';
+export { DocumentGridView } from './document-grid-view';
+export { DocumentListView } from './document-list-view';
+export { TagsManager } from './tags-manager';
+export { DocumentDetailsView } from './document-details-view';
+export { LayoutToggle } from './layout-toggle';
+export { DocumentComments } from './document-comments';
+export { DocumentDetail } from './document-detail';
+export { DocumentTable } from './document-table';
+export { DocumentTags } from './document-tags';

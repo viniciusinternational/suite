@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ZitadelUser } from '@/types';
+import { AUTH_API_URL } from '@/constants';
 
 // API Response Types
 interface AuthAPIUser {
@@ -32,7 +33,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     // Fetch users from auth API
-    const response = await fetch('https://auth.viniciusint.com/api/v1/zitadel/auth/user');
+    const baseUrl = AUTH_API_URL.replace(/\/$/, '');
+    const response = await fetch(`${baseUrl}/api/v1/zitadel/auth/user`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch users from auth API');

@@ -1,7 +1,7 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter, notFound } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 
 import { useAuthGuard } from '@/hooks/use-auth-guard';
@@ -19,7 +19,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { PaymentItemModal, type PaymentItemFormValues } from '@/components/payment/payment-item-modal';
 import { PaymentApproval } from '@/components/payment/payment-approval';
-import { usePayment } from '@/hooks/use-payments';
+import { usePayment, useProcessPayment } from '@/hooks/use-payments';
 
 export default function PaymentDetailPage() {
   useAuthGuard(['view_payments']);
@@ -31,12 +31,6 @@ export default function PaymentDetailPage() {
 
   const paymentId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  useEffect(() => {
-    if (!paymentId) {
-      router.replace('/payments');
-    }
-  }, [paymentId, router]);
-
   const {
     data: payment,
     isLoading,
@@ -44,15 +38,59 @@ export default function PaymentDetailPage() {
     error,
     refetch,
   } = usePayment(paymentId);
+  const processPayment = useProcessPayment(paymentId ?? '');
 
-  useEffect(() => {
-    if (isError) {
-      const axiosError = error as AxiosError<{ error?: string }> | undefined;
-      if (axiosError?.response?.status === 404) {
-        router.replace('/payments');
-      }
+  if (!paymentId) {
+    notFound();
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-4 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-32" />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    const axiosError = error as AxiosError<{ error?: string }> | undefined;
+    if (axiosError?.response?.status === 404) {
+      notFound();
     }
-  }, [isError, error, router]);
+  }
+
+  if (!payment) {
+    notFound();
+  }
 
   const totals = useMemo(() => {
     if (!payment) {
@@ -75,6 +113,17 @@ export default function PaymentDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {payment &&
+            payment.payerAccountId &&
+            payment.status !== 'paid' &&
+            payment.status !== 'voided' && (
+              <Button
+                onClick={() => processPayment.mutate()}
+                disabled={processPayment.isPending}
+              >
+                {processPayment.isPending ? 'Processing...' : 'Mark as Paid'}
+              </Button>
+            )}
           <Button variant="outline" onClick={() => router.push('/payments')}>
             Back to Payments
           </Button>
@@ -100,6 +149,11 @@ export default function PaymentDetailPage() {
               <SummaryField
                 label="Status"
                 value={payment ? payment.status.replace(/_/g, ' ') : 'Loading...'}
+                loading={isLoading || !payment}
+              />
+              <SummaryField
+                label="Payer Account"
+                value={payment?.payerAccount ? `${payment.payerAccount.name} (${payment.payerAccount.code})` : payment?.payerAccountId ? 'Selected' : '—'}
                 loading={isLoading || !payment}
               />
               <SummaryField

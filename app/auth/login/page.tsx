@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuthStore } from '@/store';
+import { AUTH_URL } from '@/constants';
 
 export default function LoginPage() {
   const { setNotificationId } = useAuthStore();
@@ -17,7 +18,8 @@ export default function LoginPage() {
 
     const notificationId = generateNotificationId();
     const callbackUri = `${window.location.origin}/auth/callback`;
-    window.location.href = `https://auth.viniciusint.com/api/v1/zitadel/auth/url?callback_uri=${encodeURIComponent(callbackUri)}&notification_id=${notificationId}`;
+    const baseUrl = AUTH_URL.replace(/\/$/, '');
+    window.location.href = `${baseUrl}/api/v1/zitadel/auth/url?callback_uri=${encodeURIComponent(callbackUri)}&notification_id=${notificationId}`;
   }, [setNotificationId]);
 
   return (

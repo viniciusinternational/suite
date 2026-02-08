@@ -59,6 +59,14 @@ export const navigationConfig: NavigationItem[] = [
     href: '/payments',
     permissions: ['view_payments'],
   },
+  // Accounts Module
+  {
+    id: 'accounts',
+    label: 'Accounts',
+    icon: 'Wallet',
+    href: '/accounts',
+    permissions: ['view_accounts'],
+  },
   // Payroll Module
   {
     id: 'payroll',
@@ -68,21 +76,21 @@ export const navigationConfig: NavigationItem[] = [
     permissions: ['view_payroll'],
   },
   // Leave Module
-  {
-    id: 'leave',
-    label: 'Leave',
-    icon: 'Calendar',
-    href: '/leave',
-    permissions: ['view_leave'],
-  },
+  // {
+  //   id: 'leave',
+  //   label: 'Leave',
+  //   icon: 'Calendar',
+  //   href: '/leave',
+  //   permissions: ['view_leave'],
+  // },
   // Reports Module
-  {
-    id: 'reports',
-    label: 'Reports',
-    icon: 'BarChart3',
-    href: '/reports',
-    permissions: ['view_reports'],
-  },
+  // {
+  //   id: 'reports',
+  //   label: 'Reports',
+  //   icon: 'BarChart3',
+  //   href: '/reports',
+  //   permissions: ['view_reports'],
+  // },
   // Audit Logs Module
   {
     id: 'audit-logs',
@@ -99,6 +107,14 @@ export const navigationConfig: NavigationItem[] = [
     href: '/approvals',
     permissions: ['view_approvals'],
   },
+  // Role & Permissions Module
+  {
+    id: 'roles',
+    label: 'Role & Permissions',
+    icon: 'ShieldCheck',
+    href: '/role-permissions',
+    permissions: ['view_roles'],
+  },
   // Settings Module
   {
     id: 'settings',
@@ -108,29 +124,29 @@ export const navigationConfig: NavigationItem[] = [
     permissions: ['view_settings'],
   },
   // Team Module
-  {
-    id: 'team',
-    label: 'Team',
-    icon: 'Users',
-    href: '/team',
-    permissions: ['view_team'],
-  },
+  // {
+  //   id: 'team',
+  //   label: 'Team',
+  //   icon: 'Users',
+  //   href: '/team',
+  //   permissions: ['view_team'],
+  // },
   // Timesheets Module
-  {
-    id: 'timesheets',
-    label: 'Timesheets',
-    icon: 'Clock',
-    href: '/timesheets',
-    permissions: ['view_timesheets'],
-  },
-  // Performance Module
-  {
-    id: 'performance',
-    label: 'Performance',
-    icon: 'Star',
-    href: '/performance',
-    permissions: ['view_performance'],
-  },
+  // {
+  //   id: 'timesheets',
+  //   label: 'Timesheets',
+  //   icon: 'Clock',
+  //   href: '/timesheets',
+  //   permissions: ['view_timesheets'],
+  // },
+  // // Performance Module
+  // {
+  //   id: 'performance',
+  //   label: 'Performance',
+  //   icon: 'Star',
+  //   href: '/performance',
+  //   permissions: ['view_performance'],
+  // },
   // Memos Module
   {
     id: 'memos',

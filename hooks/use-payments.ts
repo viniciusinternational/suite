@@ -65,7 +65,9 @@ type CreatePaymentInput = {
   tags?: string[];
   requiresApproval?: boolean;
   payeeId?: string;
-  payerAccountId?: string;
+  payeeFullName?: string;
+  payeePhone?: string;
+  payerAccountId: string;
   submittedById?: string;
   approverIds?: string[];
   items?: Array<{
@@ -137,6 +139,22 @@ export function useApprovePayment(paymentId: string) {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] });
       queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+    },
+  });
+}
+
+export function useProcessPayment(paymentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`/payments/${paymentId}/process`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['payment', paymentId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
   });
 }

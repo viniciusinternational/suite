@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useCreateMemo, useUpdateMemo } from '@/hooks/use-memos'
 import { LexicalWrapper } from './lexical-wrapper'
 import axios from '@/lib/axios'
@@ -20,11 +21,24 @@ const schema = z.object({
   content: z.string().min(1, 'Content is required'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   expiresAt: z.string().optional(),
+  isGlobal: z.boolean().default(false),
   userIds: z.array(z.string()).optional(),
   departmentIds: z.array(z.string()).optional(),
 })
 
 type FormValues = z.infer<typeof schema>
+
+function toDatetimeLocalValue(value: string | undefined): string {
+  if (!value) return ''
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 16)
+}
+
+function toISOExpiresAt(value: string | undefined): string | undefined {
+  if (!value || !value.trim()) return undefined
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? undefined : d.toISOString()
+}
 
 interface Props {
   memo?: Memo | null
@@ -44,7 +58,8 @@ export function MemoForm({ memo, onSuccess }: Props) {
       title: memo?.title || '',
       content: memo?.content || '',
       priority: memo?.priority || 'medium',
-      expiresAt: memo?.expiresAt ? new Date(memo.expiresAt).toISOString().slice(0, 16) : '',
+      expiresAt: toDatetimeLocalValue(memo?.expiresAt),
+      isGlobal: memo?.isGlobal ?? false,
       userIds: (memo?.users || []).map(u => u.id),
       departmentIds: (memo?.departments || []).map(d => d.id),
     },
@@ -64,13 +79,15 @@ export function MemoForm({ memo, onSuccess }: Props) {
 
   const onSubmit = async (values: FormValues) => {
     try {
+      const isGlobal = values.isGlobal === true
       const payload = {
         title: values.title,
         content: values.content,
         priority: values.priority,
-        expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : undefined,
-        userIds: values.userIds || [],
-        departmentIds: values.departmentIds || [],
+        expiresAt: toISOExpiresAt(values.expiresAt),
+        isGlobal,
+        userIds: isGlobal ? [] : (values.userIds || []),
+        departmentIds: isGlobal ? [] : (values.departmentIds || []),
       }
 
       if (memo?.id) {
@@ -102,28 +119,16 @@ export function MemoForm({ memo, onSuccess }: Props) {
     description: d.sector,
   }))
 
-  return (
-    <form className="flex flex-col h-full" onSubmit={form.handleSubmit(onSubmit)}>
-      {/* Title */}
-      <div className="p-6 border-b">
-        <Label htmlFor="title">Title</Label>
-        <Input 
-          id="title"
-          {...form.register('title')} 
-          placeholder="Memo title" 
-          className="mt-2"
-        />
-        {form.formState.errors.title && (
-          <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
-        )}
-      </div>
+  const isGlobal = form.watch('isGlobal')
 
+  return (
+    <form className="flex flex-col h-full min-h-0" onSubmit={form.handleSubmit(onSubmit)}>
       {/* Split Layout: Editor Left, Controls Right */}
       <div className="flex flex-1 min-h-0">
         {/* Left: Rich Text Editor */}
-        <div className="flex-1 p-6 border-r overflow-y-auto">
+        <div className="flex-1 p-6 border-r overflow-y-auto flex flex-col min-h-0">
           <Label>Content</Label>
-          <div className="mt-2">
+          <div className="mt-2 flex-1 min-h-0 flex flex-col">
             <LexicalWrapper
               value={form.watch('content')}
               onChange={(data) => form.setValue('content', data)}
@@ -135,8 +140,22 @@ export function MemoForm({ memo, onSuccess }: Props) {
           )}
         </div>
 
-        {/* Right: Controls */}
-        <div className="w-80 p-6 overflow-y-auto space-y-6 bg-gray-50">
+        {/* Right: Controls (Title, Priority, Expires, Global visibility, Target Users/Depts) */}
+        <div className="w-80 p-6 overflow-y-auto space-y-6 bg-muted/30 border-l shrink-0">
+          {/* Title */}
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input 
+              id="title"
+              {...form.register('title')} 
+              placeholder="Memo title" 
+              className="mt-2"
+            />
+            {form.formState.errors.title && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.title.message}</p>
+            )}
+          </div>
+
           {/* Priority */}
           <div>
             <Label>Priority</Label>
@@ -166,8 +185,31 @@ export function MemoForm({ memo, onSuccess }: Props) {
             />
           </div>
 
+          {/* Global visibility */}
+          <div className="flex items-start gap-2 space-y-0">
+            <Checkbox
+              id="isGlobal"
+              checked={isGlobal}
+              onCheckedChange={(checked) => {
+                form.setValue('isGlobal', checked === true)
+                if (checked === true) {
+                  form.setValue('userIds', [])
+                  form.setValue('departmentIds', [])
+                }
+              }}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label htmlFor="isGlobal" className="text-sm font-normal cursor-pointer">
+                Visible to everyone
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Overrides targeted users and departments; memo is visible to all.
+              </p>
+            </div>
+          </div>
+
           {/* Target Users */}
-          <div>
+          <div className={isGlobal ? 'opacity-50 pointer-events-none' : ''}>
             <Label>Target Users</Label>
             <div className="mt-2">
               <MultiSelect
@@ -182,7 +224,7 @@ export function MemoForm({ memo, onSuccess }: Props) {
           </div>
 
           {/* Target Departments */}
-          <div>
+          <div className={isGlobal ? 'opacity-50 pointer-events-none' : ''}>
             <Label>Target Departments</Label>
             <div className="mt-2">
               <MultiSelect
@@ -199,7 +241,7 @@ export function MemoForm({ memo, onSuccess }: Props) {
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t flex justify-end gap-3">
+      <div className="shrink-0 p-4 border-t flex justify-end gap-3 bg-background">
         <Button 
           type="button"
           variant="outline"
@@ -217,7 +259,7 @@ export function MemoForm({ memo, onSuccess }: Props) {
           className="gap-2"
         >
           <Plus className="h-4 w-4" />
-          {memo?.id ? 'Save Changes' : 'Add'}
+          Save
         </Button>
       </div>
     </form>
